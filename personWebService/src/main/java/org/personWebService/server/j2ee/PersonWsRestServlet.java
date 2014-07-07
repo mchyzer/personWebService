@@ -22,13 +22,18 @@ import javax.servlet.http.HttpSession;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.log4j.NDC;
+import org.joda.time.DateTime;
+import org.joda.time.Period;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
+import org.joda.time.format.ISOPeriodFormat;
 import org.personWebService.server.beans.PwsNode;
 import org.personWebService.server.beans.PwsNode.PwsNodeType;
 import org.personWebService.server.config.PersonWebServiceServerConfig;
 import org.personWebService.server.daemon.DaemonController;
 import org.personWebService.server.util.PersonWsServerUtils;
-import org.personWebService.server.ws.corebeans.PwsResultProblem;
 import org.personWebService.server.ws.corebeans.PwsResponseBean;
+import org.personWebService.server.ws.corebeans.PwsResultProblem;
 import org.personWebService.server.ws.rest.PwsRestContentType;
 import org.personWebService.server.ws.rest.PwsRestHttpMethod;
 import org.personWebService.server.ws.rest.PwsRestInvalidRequest;
@@ -338,7 +343,7 @@ public class PersonWsRestServlet extends HttpServlet {
       }
         
       if (!foundContentType) {
-        throw new PwsRestInvalidRequest("Request must end in .json or .xml: " + request.getRequestURI());
+        throw new PwsRestInvalidRequest("Invalid request " + request.getRequestURI());
       }
       
       //first see if version
@@ -389,7 +394,8 @@ public class PersonWsRestServlet extends HttpServlet {
     StringBuilder urlBuilder = null;
     String responseString = null;
     String responseStringForLog = null;
-
+    long responseTimeMillis = -1;
+    
     try {
       { 
         urlBuilder = new StringBuilder();
@@ -436,6 +442,21 @@ public class PersonWsRestServlet extends HttpServlet {
       //     "urn:scim:schemas:extension:penn:user:1.0"
       //  ],
       PwsNode pwsNode = pwsResponseBean.getPwsNode();
+      if (pwsNode == null) {
+        pwsNode = new PwsNode(PwsNodeType.object);
+        pwsResponseBean.setPwsNode(pwsNode);
+      }
+      PwsNode metaNode = pwsNode.retrieveField("meta");
+      if (metaNode == null) {
+        
+        metaNode = new PwsNode(PwsNodeType.object);
+        pwsNode.assignField("meta", metaNode);
+        
+      } else {
+        //move meta to the bottom
+        pwsNode.removeField("meta");
+        pwsNode.assignField("meta", metaNode);
+      }
       {
         PwsNode schemasNode = new PwsNode(PwsNodeType.string);
         pwsNode.assignField("schemas", schemasNode);
@@ -445,6 +466,26 @@ public class PersonWsRestServlet extends HttpServlet {
         schemasNode.addArrayItem(new PwsNode("urn:scim:schemas:extension:penn:user:1.0"));
       }
 
+      if (!StringUtils.isBlank(pwsResponseBean.getResultCode()) && metaNode.retrieveField("xCiferStatusCode") == null) {
+        metaNode.assignField("xCiferStatusCode", new PwsNode(pwsResponseBean.getResultCode()));
+      }
+      if (metaNode.retrieveField("xCiferSuccess") == null) {
+        boolean success = pwsResponseBean.getSuccess() != null && pwsResponseBean.getSuccess();
+        metaNode.assignField("xCiferSuccess", new PwsNode(success));
+      }
+      if (metaNode.retrieveField("xCiferResponseTimestamp") == null) {
+        DateTime dateTime = new DateTime(); 
+        DateTimeFormatter dateTimeFormatter = ISODateTimeFormat.dateTime(); 
+        String responseTimestamp = dateTimeFormatter.print(dateTime);
+        metaNode.assignField("xCiferResponseTimestamp", new PwsNode(responseTimestamp));
+      }
+      if (metaNode.retrieveField("xCiferHttpStatusCode") == null) {
+        metaNode.assignField("xCiferHttpStatusCode", new PwsNode((long)pwsResponseBean.getHttpResponseCode()));
+      }
+      if (metaNode.retrieveField("xCiferServerVersion") == null) {
+        metaNode.assignField("xCiferServerVersion", new PwsNode("1.0"));
+      }
+      
       //structure name
       //twoFactorResponseBeanBase.setStructureName(PersonWsServerUtils.structureName(twoFactorResponseBeanBase.getClass()));
 
@@ -464,8 +505,15 @@ public class PersonWsRestServlet extends HttpServlet {
 
       //temporarily set to uuid, so we can time the content generation
       long millisUuid = -314253647586987L;
+      String millisUuidString = Long.toString(millisUuid);
       
-      //twoFactorResponseBeanBase.getResponseMeta().setMillis(millisUuid);
+      boolean assignResponseTime = false;
+      if (metaNode.retrieveField("xCiferResponseTime") == null) {
+        //  DurationFormatUtils.formatDurationISO()
+        //  "responseTime":"P0.011S",
+        assignResponseTime = true;
+        metaNode.assignField("xCiferResponseTime", new PwsNode(millisUuidString));
+      }
       
       responseString = pwsNode == null ? null : pwsNode.toJson();
       
@@ -479,8 +527,17 @@ public class PersonWsRestServlet extends HttpServlet {
           responseStringForLog = wsRestContentType.indent(responseString);
         }
       }
-      
-      responseString = PersonWsServerUtils.replace(responseString, Long.toString(millisUuid), Long.toString(((System.nanoTime()-serviceStarted) / 1000000)));
+
+      responseTimeMillis = (System.nanoTime()-serviceStarted) / 1000000;
+
+      if (assignResponseTime) {
+        
+        //String responseTimeFormatted = DurationFormatUtils.formatDurationISO(responseTimeMillis);
+        
+        String responseTimeFormatted = ISOPeriodFormat.standard().print(new Period(responseTimeMillis));
+        
+        responseString = PersonWsServerUtils.replace(responseString, millisUuidString, responseTimeFormatted);
+      }
       
       try {
         response.getWriter().write(responseString);
@@ -510,7 +567,7 @@ public class PersonWsRestServlet extends HttpServlet {
       StringBuilder fileContents = new StringBuilder();
       Date currentDate = new Date();
       fileContents.append("Timestamp: ").append(currentDate).append("\n");
-      fileContents.append("Millis: ").append(Long.toString(((System.nanoTime()-serviceStarted) / 1000000))).append("\n");
+      fileContents.append("Millis: ").append(Long.toString(responseTimeMillis)).append("\n");
       fileContents.append("URL: ").append(urlBuilder).append("\n");
       fileContents.append("Request body: ").append(body).append("\n\n");
       fileContents.append("Response body: ").append(responseStringForLog).append("\n\n");

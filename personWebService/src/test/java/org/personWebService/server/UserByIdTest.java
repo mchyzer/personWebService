@@ -54,7 +54,7 @@ public class UserByIdTest extends TestCase {
     //set auth scope to null and negative so it applies to all hosts and ports
     httpClient.getState().setCredentials(new AuthScope(null, -1), defaultcreds);
     
-    HttpMethodBase httpMethodBase = new GetMethod("http://localhost:8089/personWebService/personWs/v1/Users/12345?contentType=json&indent=true");
+    HttpMethodBase httpMethodBase = new GetMethod("http://localhost:8089/personWebService/personWs/v1/Users/10021368?contentType=json&indent=true");
     
     httpMethodBase.setRequestHeader("Connection", "close");
     

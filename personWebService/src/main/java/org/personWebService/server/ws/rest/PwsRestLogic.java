@@ -1,13 +1,21 @@
 package org.personWebService.server.ws.rest;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 import org.personWebService.server.beans.PwsNode;
 import org.personWebService.server.beans.PwsNode.PwsNodeType;
+import org.personWebService.server.config.PersonWebServiceServerConfig;
 import org.personWebService.server.hibernate.HibernateSession;
 import org.personWebService.server.hibernate.PersonWsDaoFactory;
 import org.personWebService.server.hibernate.PwsHibUtils;
@@ -72,6 +80,11 @@ public class PwsRestLogic {
       trafficLogMap.put("id", id);
 
       
+      //lets validate the id
+      if (!id.matches("[a-zA-Z0-9]+")) {
+        throw new RuntimeException("Invalid id: " + id);
+      }
+      
       PwsNode pwsNode = new PwsNode(PwsNodeType.object);
       
       pwsResponseBean.setPwsNode(pwsNode);
@@ -93,7 +106,8 @@ public class PwsRestLogic {
       {
         pwsNode.assignField("meta", metaNode);
         metaNode.assignField("resourceType", new PwsNode("User"));
-        metaNode.assignField("location", new PwsNode("User"));
+        metaNode.assignField("location", new PwsNode(
+            PersonWebServiceServerConfig.retrieveConfig().propertyValueStringRequired("personWsServer.appUrlBase") + "personWs/v1/Users/" + id));
       }      
       
       if (PersonWsServerUtils.length(results) > 1) {
@@ -121,9 +135,10 @@ public class PwsRestLogic {
         errorNode.assignField("description", new PwsNode(errorMessage));
 
         pwsResponseBean.setErrorMessage(errorMessage);
-        pwsResponseBean.setResultCode("SUCCESS_USER_NOT_FOUND");
+        pwsResponseBean.setResultCode("successNotFound");
         
         pwsResponseBean.setHttpResponseCode(404);
+        pwsResponseBean.setSuccess(true);
         
         return pwsResponseBean;
       }
@@ -257,6 +272,26 @@ public class PwsRestLogic {
       //     },
       //     "xPennPrimarySrsDivision": "SEAS"
       //}      
+
+      
+      if (!StringUtils.isBlank(lastUpdated)) {
+        //2013-10-25 14:57:42.13
+        try {
+          SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd kk:mm:ss.SS");
+          Date dateStr = formatter.parse(lastUpdated);
+          
+          DateTime dateTime = new DateTime(dateStr.getTime()); 
+          DateTimeFormatter dateTimeFormatter = ISODateTimeFormat.dateTime(); 
+          String lastModifiedIso = dateTimeFormatter.print(dateTime);
+          
+          metaNode.assignField("lastModified", new PwsNode(lastModifiedIso));
+        } catch (ParseException pe) {
+          LOG.error("Cant parse date: " + lastUpdated);
+        }
+      }
+      
+      pwsResponseBean.setResultCode("successFound");
+      pwsResponseBean.setSuccess(true);
       
       return pwsResponseBean;
     } catch (RuntimeException re) {

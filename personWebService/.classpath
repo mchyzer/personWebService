@@ -6,6 +6,7 @@
 	<classpathentry exported="true" kind="lib" path="lib/personWebService/activation.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/personWebService/mail.jar"/>
 	<classpathentry kind="lib" path="lib/nonwebapp/jsp-api.jar"/>
+	<classpathentry kind="lib" path="lib/personWebService/joda-time.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry exported="true" kind="lib" path="lib/nonwebapp/servlet.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/personWebService/commons-logging.jar"/>
