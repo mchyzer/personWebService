@@ -1,0 +1,15 @@
+/ehcache.xml
+/sources.xml
+/subject.properties
+/log4j.properties
+/krb5.properties
+/spy.properties
+/grouper.client.properties
+/twoFactor.hibernate.properties
+/morphString.properties
+/encryptKeysTest.properties
+/krb5.conf
+/sources.mysql.xml
+/personWebService.server.properties
+/personWebService.server.local.properties
+/personWebService.hibernate.properties

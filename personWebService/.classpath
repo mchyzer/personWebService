@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src/main/java"/>
+	<classpathentry kind="src" path="src/main/resources"/>
+	<classpathentry kind="src" path="src/test/java"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/activation.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/mail.jar"/>
+	<classpathentry kind="lib" path="lib/nonwebapp/jsp-api.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry exported="true" kind="lib" path="lib/nonwebapp/servlet.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/commons-logging.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/log4j.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/grouperClient.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/commons-collections.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/hibernate.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/commons-lang.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/ezmorph.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/json-lib.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/commons-jexl.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/commons-beanutils.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/commons-codec.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/ehcache.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/javassist.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/dom4j.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/c3p0.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/junit/junit.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/slf4j-api.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/slf4j-log4j12.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/hibernate-jpa-2.0-api.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/p6spy.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/jta.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/antlr.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/mysql-connector-java-bin.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/standard.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/jstl.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/quartz.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/commons-digester.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/morphString.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/personWebService/commons-httpclient.jar"/>
+	<classpathentry kind="lib" path="lib/personWebService/httpclient-4.2.3.jar"/>
+	<classpathentry kind="lib" path="lib/personWebService/httpcore-4.2.2.jar"/>
+	<classpathentry kind="lib" path="lib/personWebService/ojdbc6_g.jar"/>
+	<classpathentry kind="lib" path="lib/personWebService/mchange-commons-java.jar"/>
+	<classpathentry kind="lib" path="lib/personWebService/commons-validator.jar"/>
+	<classpathentry kind="lib" path="lib/personWebService/proxyWrapper.jar"/>
+	<classpathentry kind="output" path="webapp/WEB-INF/classes"/>
+</classpath>

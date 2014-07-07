@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:j2ee="http://java.sun.com/xml/ns/j2ee" version="2.4" xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+
+  <filter>
+    <filter-name>proxyWrapper</filter-name>
+    <filter-class>edu.upenn.isc.proxyWrapper.ProxyWrapperFilter</filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>proxyWrapper</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+  <context-param>
+    <param-name>quartz:shutdown-on-unload</param-name>
+    <param-value>true</param-value>
+  </context-param>
+  <context-param>
+    <param-name>quartz:wait-on-shutdown</param-name>
+    <param-value>false</param-value>
+  </context-param>
+  <context-param>
+    <param-name>quartz:start-on-load</param-name>
+    <param-value>true</param-value>
+  </context-param>
+
+  <listener>
+    <listener-class>
+      org.quartz.ee.servlet.QuartzInitializerListener
+    </listener-class>
+  </listener>
+  
+  <filter>
+    <!-- keeps the request and response in threadlocal so they dont have to be passed around -->
+    <filter-name>Person Web Service filter</filter-name>
+    <filter-class>org.personWebService.server.j2ee.PersonWsFilterJ2ee</filter-class>
+  </filter>
+
+  <!-- Map the filter to a Servlet or URL -->
+  <filter-mapping>
+    <filter-name>Person Web Service filter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+  <servlet>
+    <servlet-name>PersonWsServlet</servlet-name>
+    <display-name>PersonWsServlet</display-name>
+    <servlet-class>org.personWebService.server.j2ee.PersonWsRestServlet</servlet-class>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+  <servlet>
+    <servlet-name>StatusServlet</servlet-name>
+    <display-name>Status Servlet</display-name>
+    <servlet-class>org.personWebService.server.j2ee.PersonWsStatusServlet</servlet-class>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>StatusServlet</servlet-name>
+    <url-pattern>/status</url-pattern>
+  </servlet-mapping>
+  
+  <servlet-mapping>
+    <servlet-name>PersonWsServlet</servlet-name>
+    <url-pattern>/personWs/*</url-pattern>
+  </servlet-mapping>
+
+
+  <!-- security-role>
+    <description>
+      The role that is required to log in to web service
+    </description>
+    <role-name>pws_user</role-name>
+  </security-role>
+
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>Authenticated</web-resource-name>
+      <url-pattern>/personWs/*</url-pattern>
+    </web-resource-collection>
+    <auth-constraint>
+      <role-name>pws_user</role-name>
+    </auth-constraint>
+  </security-constraint>
+  <login-config>
+    <auth-method>BASIC</auth-method>
+    <realm-name>Two Factor</realm-name>
+  </login-config -->
+
+</web-app>
