@@ -45,7 +45,7 @@ public class PwsHttpServletRequest extends HttpServletRequestWrapper {
   public String getMethod() {
     if (this.method == null) {
       //get it from the URL if it is there, lets not mess with method
-      String methodString = null; //this.getParameter("method");
+      String methodString = this.getParameter("method");
       if (PersonWsServerUtils.isBlank(methodString)) {
         methodString = super.getMethod();
       }

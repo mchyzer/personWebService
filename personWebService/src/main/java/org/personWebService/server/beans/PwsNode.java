@@ -32,6 +32,15 @@ public class PwsNode {
   }
   
   /**
+   * 
+   * @param someInteger
+   */
+  public PwsNode(Integer someInteger) {
+    this.setPwsNodeType(PwsNodeType.integer);
+    this.integer = someInteger == null ? null : someInteger.longValue();
+  }
+  
+  /**
    * construct with boolean
    * @param someBoolean
    */

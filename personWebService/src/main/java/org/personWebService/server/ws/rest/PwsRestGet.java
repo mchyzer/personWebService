@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.personWebService.server.hibernate.PersonWsDaoFactory;
-import org.personWebService.server.j2ee.PersonWsFilterJ2ee;
 import org.personWebService.server.util.PersonWsServerUtils;
 import org.personWebService.server.ws.corebeans.PwsResponseBean;
 
@@ -37,6 +36,9 @@ public enum PwsRestGet {
         throw new PwsRestInvalidRequest("Not expecting more than 1 url string: " + PersonWsServerUtils.toStringForLog(urlStrings));
       }
       
+      if (StringUtils.isBlank(id)) {
+        return PwsRestLogic.usersSearch(PersonWsDaoFactory.getFactory(), params);
+      }
       return PwsRestLogic.userById(PersonWsDaoFactory.getFactory(), id, params);
       
     }

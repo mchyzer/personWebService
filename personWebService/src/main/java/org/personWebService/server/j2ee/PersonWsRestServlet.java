@@ -485,6 +485,32 @@ public class PersonWsRestServlet extends HttpServlet {
       if (metaNode.retrieveField("xCiferServerVersion") == null) {
         metaNode.assignField("xCiferServerVersion", new PwsNode("1.0"));
       }
+
+      if (!StringUtils.isBlank(pwsResponseBean.getErrorMessage())) {
+        
+        //"Errors":[
+        //          {
+        //            "description":"Resource 2819c223-7f76-453a-919d-413861904646 not found",
+        //            "code":"404"
+        //          }
+        //        ]
+        
+        PwsNode errorsNode = pwsNode.removeField("Errors");
+        
+        if (errorsNode == null) {
+          errorsNode = new PwsNode(PwsNodeType.object);
+          pwsNode.assignField("Errors", errorsNode);
+          errorsNode.setArrayType(true);
+
+          PwsNode errorNode = new PwsNode(PwsNodeType.object);
+          errorsNode.addArrayItem(errorNode);
+
+          errorNode.assignField("code", new PwsNode("errorMessage"));
+          errorNode.assignField("description", new PwsNode(pwsResponseBean.getErrorMessage()));
+
+        }
+            
+      }
       
       //structure name
       //twoFactorResponseBeanBase.setStructureName(PersonWsServerUtils.structureName(twoFactorResponseBeanBase.getClass()));

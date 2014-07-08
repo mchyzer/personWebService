@@ -21,7 +21,7 @@ import org.personWebService.server.config.PersonWebServiceServerConfig;
 /**
  * test user by id
  */
-public class UserByIdTest extends TestCase {
+public class UsersSearchTest extends TestCase {
 
   /**
    * @param args
@@ -54,8 +54,10 @@ public class UserByIdTest extends TestCase {
     //set auth scope to null and negative so it applies to all hosts and ports
     httpClient.getState().setCredentials(new AuthScope(null, -1), defaultcreds);
     
-    //    HttpMethodBase httpMethodBase = new GetMethod("http://localhost:8089/personWebService/personWs/v1/Users/10021368?contentType=json&indent=true");
-    HttpMethodBase httpMethodBase = new GetMethod("https://fasttest-small-a-01.apps.upenn.edu/personWebService/personWs/v1/Users/10021368?contentType=json&indent=true");
+    //xCiferSplitTrim=true&filter=xCiferDescription co "Joh Smi" 
+    //HttpMethodBase httpMethodBase = new GetMethod("http://localhost:8089/personWebService/personWs/v1/Users?xCiferSplitTrim=true&filter=xCiferDescription%20co%20%22Chris%20yzer%22&contentType=json&indent=true");
+    HttpMethodBase httpMethodBase = new GetMethod("https://fasttest-small-a-01.apps.upenn.edu/personWebService/personWs/v1/Users?xCiferSplitTrim=true&filter=xCiferDescription%20co%20%22Chris%20yzer%22&contentType=json&indent=true");
+    
     
     httpMethodBase.setRequestHeader("Connection", "close");
     
