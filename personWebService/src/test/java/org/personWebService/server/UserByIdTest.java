@@ -29,6 +29,20 @@ public class UserByIdTest extends TestCase {
    */
   public static void main(String[] args) throws Exception {
 
+//    System.out.println(new DateTime(System.currentTimeMillis()));
+//    
+//    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS");
+//
+//    simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+//    
+//    System.out.println(
+//          simpleDateFormat
+//        .format(new Date()) + "Z");
+//    
+//    if (true) {
+//      return;
+//    }
+    
     HttpClient httpClient = new HttpClient();
     
     DefaultHttpParams.getDefaultParams().setParameter(

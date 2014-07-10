@@ -22,10 +22,7 @@ import javax.servlet.http.HttpSession;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.log4j.NDC;
-import org.joda.time.DateTime;
 import org.joda.time.Period;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 import org.joda.time.format.ISOPeriodFormat;
 import org.personWebService.server.beans.PwsNode;
 import org.personWebService.server.beans.PwsNode.PwsNodeType;
@@ -240,7 +237,6 @@ public class PersonWsRestServlet extends HttpServlet {
           
       }
     }
-
   }
   
   /**
@@ -448,42 +444,56 @@ public class PersonWsRestServlet extends HttpServlet {
       }
       PwsNode metaNode = pwsNode.retrieveField("meta");
       if (metaNode == null) {
-        
         metaNode = new PwsNode(PwsNodeType.object);
-        pwsNode.assignField("meta", metaNode);
         
       } else {
         //move meta to the bottom
         pwsNode.removeField("meta");
-        pwsNode.assignField("meta", metaNode);
       }
+      pwsNode.assignField("meta", metaNode);
+      
+      PwsNode ciferMetaNode = pwsNode.retrieveField("urn:scim:schemas:extension:cifer:2.0:Meta");
+      if (ciferMetaNode == null) {
+        ciferMetaNode = new PwsNode(PwsNodeType.object);
+        
+      } else {
+        //move meta to the bottom
+        pwsNode.removeField("urn:scim:schemas:extension:cifer:2.0:Meta");
+      }
+      pwsNode.assignField("urn:scim:schemas:extension:cifer:2.0:Meta", ciferMetaNode);
+      
       {
+      //"schemas":[
+      //   "urn:scim:schemas:core:2.0",
+      //   "urn:scim:schemas:extension:cifer:2.0:User",
+      //   "urn:scim:schemas:extension:cifer:2.0:Meta"
+      // ]
+        
         PwsNode schemasNode = new PwsNode(PwsNodeType.string);
         pwsNode.assignField("schemas", schemasNode);
         schemasNode.setArrayType(true);
         schemasNode.addArrayItem(new PwsNode("urn:scim:schemas:core:2.0"));
-        schemasNode.addArrayItem(new PwsNode("urn:scim:schemas:extension:cifer:user:1.0"));
-        schemasNode.addArrayItem(new PwsNode("urn:scim:schemas:extension:penn:user:1.0"));
+        schemasNode.addArrayItem(new PwsNode("urn:scim:schemas:extension:cifer:2.0:User"));
+        schemasNode.addArrayItem(new PwsNode("urn:scim:schemas:extension:cifer:2.0:Meta"));
       }
 
-      if (!StringUtils.isBlank(pwsResponseBean.getResultCode()) && metaNode.retrieveField("xCiferStatusCode") == null) {
-        metaNode.assignField("xCiferStatusCode", new PwsNode(pwsResponseBean.getResultCode()));
+      if (!StringUtils.isBlank(pwsResponseBean.getResultCode()) && ciferMetaNode.retrieveField("xCiferStatusCode") == null) {
+        ciferMetaNode.assignField("statusCode", new PwsNode(pwsResponseBean.getResultCode()));
       }
-      if (metaNode.retrieveField("xCiferSuccess") == null) {
+      if (ciferMetaNode.retrieveField("success") == null) {
         boolean success = pwsResponseBean.getSuccess() != null && pwsResponseBean.getSuccess();
-        metaNode.assignField("xCiferSuccess", new PwsNode(success));
+        ciferMetaNode.assignField("success", new PwsNode(success));
       }
-      if (metaNode.retrieveField("xCiferResponseTimestamp") == null) {
-        DateTime dateTime = new DateTime(); 
-        DateTimeFormatter dateTimeFormatter = ISODateTimeFormat.dateTime(); 
-        String responseTimestamp = dateTimeFormatter.print(dateTime);
-        metaNode.assignField("xCiferResponseTimestamp", new PwsNode(responseTimestamp));
+      if (ciferMetaNode.retrieveField("responseTimestamp") == null) {
+        long now = System.currentTimeMillis();
+        String responseTimestamp = PersonWsServerUtils.dateToIso(now);
+        ciferMetaNode.assignField("responseTimestamp", new PwsNode(responseTimestamp));
       }
-      if (metaNode.retrieveField("xCiferHttpStatusCode") == null) {
-        metaNode.assignField("xCiferHttpStatusCode", new PwsNode((long)pwsResponseBean.getHttpResponseCode()));
+      if (ciferMetaNode.retrieveField("httpStatusCode") == null) {
+        ciferMetaNode.assignField("httpStatusCode", new PwsNode((long)pwsResponseBean.getHttpResponseCode()));
       }
-      if (metaNode.retrieveField("xCiferServerVersion") == null) {
-        metaNode.assignField("xCiferServerVersion", new PwsNode("1.0"));
+      if (ciferMetaNode.retrieveField("serverVersion") == null) {
+        ciferMetaNode.assignField("serverVersion", new PwsNode("1.0"));
       }
 
       if (!StringUtils.isBlank(pwsResponseBean.getErrorMessage())) {
@@ -534,11 +544,11 @@ public class PersonWsRestServlet extends HttpServlet {
       String millisUuidString = Long.toString(millisUuid);
       
       boolean assignResponseTime = false;
-      if (metaNode.retrieveField("xCiferResponseTime") == null) {
+      if (ciferMetaNode.retrieveField("responseTime") == null) {
         //  DurationFormatUtils.formatDurationISO()
         //  "responseTime":"P0.011S",
         assignResponseTime = true;
-        metaNode.assignField("xCiferResponseTime", new PwsNode(millisUuidString));
+        ciferMetaNode.assignField("responseTime", new PwsNode(millisUuidString));
       }
       
       responseString = pwsNode == null ? null : pwsNode.toJson();

@@ -13,9 +13,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 import org.personWebService.server.beans.PwsNode;
 import org.personWebService.server.beans.PwsNode.PwsNodeType;
 import org.personWebService.server.config.PersonWebServiceServerConfig;
@@ -144,9 +141,7 @@ public class PwsRestLogic {
           SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd kk:mm:ss.SS");
           Date dateStr = formatter.parse(lastUpdated);
           
-          DateTime dateTime = new DateTime(dateStr.getTime()); 
-          DateTimeFormatter dateTimeFormatter = ISODateTimeFormat.dateTime(); 
-          String lastModifiedIso = dateTimeFormatter.print(dateTime);
+          String lastModifiedIso = PersonWsServerUtils.dateToIso(dateStr.getTime());
           
           metaNode.assignField("lastModified", new PwsNode(lastModifiedIso));
         } catch (ParseException pe) {
@@ -225,20 +220,24 @@ public class PwsRestLogic {
 
     }
 
+    
+    PwsNode ciferUserNode = new PwsNode(PwsNodeType.object);
+    pwsNode.assignField("urn:scim:schemas:extension:cifer:2.0:User", ciferUserNode);
+    
     if (!PersonWsServerUtils.isBlank(birthDate)) {
       if (birthDate.contains(" ")) {
         birthDate = PersonWsServerUtils.prefixOrSuffix(birthDate, " ", true);
       }
-      pwsNode.assignField("xCiferDateOfBirth", new PwsNode(birthDate));
+      ciferUserNode.assignField("dateOfBirth", new PwsNode(birthDate));
     }
     
     if (!PersonWsServerUtils.isBlank(gender)) {
       
       if (PersonWsServerUtils.equals("M", gender)) {
-        pwsNode.assignField("xCiferGender", new PwsNode("male"));
+        ciferUserNode.assignField("gender", new PwsNode("male"));
       }
       if (PersonWsServerUtils.equals("F", gender)) {
-        pwsNode.assignField("xCiferGender", new PwsNode("female"));
+        ciferUserNode.assignField("gender", new PwsNode("female"));
       }
       
     }
@@ -378,36 +377,52 @@ public class PwsRestLogic {
         Pattern filterPattern = Pattern.compile("^xCiferDescription co \"(.*)\"$");
         Matcher matcher = filterPattern.matcher(pwsUsersSearchRequest.getFilter());
         
-        if (!matcher.matches()) {
+        if (matcher.matches()) {
          
-          throw new RuntimeException("Filter invalid or not implemented yet.  Must be: xCiferDescription co \"some string\"");
+          String scope = matcher.group(1);
           
-        }
-        
-        String scope = matcher.group(1);
-        
-        //       (search_description like '%chris%' and search_description like '%ch%' ) and
-        //see if there is a scope
-        scope = scope.toLowerCase();
-        
-        String[] scopes = pwsUsersSearchRequest.isSplitTrim() ? PersonWsServerUtils.splitTrim(scope, " ") : new String[]{scope};
-        
-        sql.append(" ( ");
-    
-        int index = 0;
-        for (String theScope : scopes) {
-          if (index != 0) {
-            sql.append(" and ");
-          }
-
-          sql.append(" search_description like ? ");
+          //       (search_description like '%chris%' and search_description like '%ch%' ) and
+          //see if there is a scope
+          scope = scope.toLowerCase();
           
-          params.add("%" + theScope + "%");
+          String[] scopes = pwsUsersSearchRequest.isSplitTrim() ? PersonWsServerUtils.splitTrim(scope, " ") : new String[]{scope};
+          
+          sql.append(" ( ");
+      
+          int index = 0;
+          for (String theScope : scopes) {
+            if (index != 0) {
+              sql.append(" and ");
+            }
+  
+            sql.append(" search_description like ? ");
             
-          index++;
-        }
-        sql.append(" ) and ");
+            params.add("%" + theScope + "%");
+              
+            index++;
+          }
+          sql.append(" ) and ");
         
+        } else {
+          
+          filterPattern = Pattern.compile("^userName eq \"(.*)\"$");
+          matcher = filterPattern.matcher(pwsUsersSearchRequest.getFilter());
+          
+          if (matcher.matches()) {
+           
+            String pennKey = matcher.group(1);
+            
+            //       kerberos_principal = 'mchyzer' and
+            
+    
+            sql.append(" kerberos_principal = ? and ");
+              
+            params.add(pennKey);
+                
+          } else {
+            throw new RuntimeException("Filter invalid or not implemented yet.  Must be: xCiferDescription co \"some string\"  -   or  -   userName eq \"jsmith\"");
+          }
+        }
       }
       
       sql.append(" active_code = 'A' "

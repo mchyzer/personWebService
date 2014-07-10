@@ -98,6 +98,9 @@ import org.apache.log4j.FileAppender;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.cfg.Configuration;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 import org.personWebService.server.cache.PersonWsCache;
 import org.personWebService.server.config.PersonWebServiceHibernateConfig;
 import org.personWebService.server.config.PersonWebServiceServerConfig;
@@ -2202,6 +2205,19 @@ public class PersonWsServerUtils {
   final static SimpleDateFormat timestampNoSlashFormat = new SimpleDateFormat(
       TIMESTAMP_NO_SLASH_FORMAT);
 
+  /**
+   * convert a date to ISO
+   * @param theTime
+   * @return the string of the datetime
+   */
+  public static String dateToIso(long theTime) {
+    DateTime dateTime = new DateTime(theTime); 
+    DateTimeFormatter dateTimeFormatter = ISODateTimeFormat.dateTime(); 
+    String responseTimestamp = dateTimeFormatter.print(dateTime);
+    return responseTimestamp;
+  }
+
+  
   /**
    * If false, throw an assertException, and give a reason
    * 
