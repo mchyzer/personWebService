@@ -178,7 +178,7 @@ public class BySqlStatic {
           return result;
   
         } catch (Exception e) {
-          throw new RuntimeException("Problem with query in select: " + sql, e);
+          throw new RuntimeException("Problem with query in select: " + sql + " and params size: " + PersonWsServerUtils.length(params), e);
         } finally {
           PersonWsServerUtils.closeQuietly(preparedStatement);
           if (PwsDatabasePerfLog.LOG.isDebugEnabled()) {

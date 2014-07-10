@@ -339,6 +339,20 @@ public class PwsRestLogic {
       pwsUsersSearchRequest.setFilter(filter);
     }
 
+    {
+      Integer startIndex = PersonWsServerUtils.intObjectValue(params.get("startIndex"), true);
+      if (startIndex != null) {
+        pwsUsersSearchRequest.setStartIndex(startIndex);
+      }
+    }
+
+    {
+      Integer count = PersonWsServerUtils.intObjectValue(params.get("count"), true);
+      if (count != null) {
+        pwsUsersSearchRequest.setCount(count);
+      }
+    }
+
     return usersSearchLogic(twoFactorDaoFactory, pwsUsersSearchRequest);
   }
 
@@ -362,19 +376,17 @@ public class PwsRestLogic {
       
       pwsResponseBean.setPwsNode(pwsNode);
   
-      int maxResults = PersonWebServiceServerConfig.retrieveConfig().propertyValueInt("pws.users.search.maxResults", 1000);
-      
       List<Object> params = new ArrayList<Object>(); 
 
-      StringBuilder sql = new StringBuilder("select penn_id, kerberos_principal, admin_view_pref_first_name, "
-          + " admin_view_pref_middle_name, "
-          + " admin_view_pref_last_name, admin_view_pref_name, admin_view_pref_email_address, birth_date, gender, last_updated "
-          + " from computed_person where "); 
+      String selectClause = "select penn_id, kerberos_principal, admin_view_pref_first_name, "
+                + " admin_view_pref_middle_name, "
+                + " admin_view_pref_last_name, admin_view_pref_name, admin_view_pref_email_address, birth_date, gender, last_updated ";
+      StringBuilder sqlWithoutSelect = new StringBuilder(" from computed_person where "); 
       
       //see if we are filtering
       if (!PersonWsServerUtils.isBlank(pwsUsersSearchRequest.getFilter())) {
         
-        Pattern filterPattern = Pattern.compile("^xCiferDescription co \"(.*)\"$");
+        Pattern filterPattern = Pattern.compile("^urn:scim:schemas:extension:cifer:2.0:User:searchDescription co \"(.*)\"$");
         Matcher matcher = filterPattern.matcher(pwsUsersSearchRequest.getFilter());
         
         if (matcher.matches()) {
@@ -387,21 +399,21 @@ public class PwsRestLogic {
           
           String[] scopes = pwsUsersSearchRequest.isSplitTrim() ? PersonWsServerUtils.splitTrim(scope, " ") : new String[]{scope};
           
-          sql.append(" ( ");
+          sqlWithoutSelect.append(" ( ");
       
           int index = 0;
           for (String theScope : scopes) {
             if (index != 0) {
-              sql.append(" and ");
+              sqlWithoutSelect.append(" and ");
             }
   
-            sql.append(" search_description like ? ");
+            sqlWithoutSelect.append(" search_description like ? ");
             
             params.add("%" + theScope + "%");
               
             index++;
           }
-          sql.append(" ) and ");
+          sqlWithoutSelect.append(" ) and ");
         
         } else {
           
@@ -415,26 +427,59 @@ public class PwsRestLogic {
             //       kerberos_principal = 'mchyzer' and
             
     
-            sql.append(" kerberos_principal = ? and ");
-              
+            sqlWithoutSelect.append(" kerberos_principal = ? and ");
+
             params.add(pennKey);
-                
+
           } else {
-            throw new RuntimeException("Filter invalid or not implemented yet.  Must be: xCiferDescription co \"some string\"  -   or  -   userName eq \"jsmith\"");
+            throw new RuntimeException("Filter invalid or not implemented yet.  Must be: urn:scim:schemas:extension:cifer:2.0:User:searchDescription co \"some string\"  -   or  -   userName eq \"jsmith\"");
           }
         }
       }
       
-      sql.append(" active_code = 'A' "
+      String orderByClause = " order by admin_view_pref_name";
+      
+      sqlWithoutSelect.append(" active_code = 'A' "
           + " and (is_active_faculty = 'Y' or is_active_staff = 'Y' or is_active_student = 'Y' "
-          + " or directory_prim_cent_affil_id is not null) order by admin_view_pref_name");
+          + " or directory_prim_cent_affil_id is not null)");
       
-      params.add(maxResults);
+      int startIndex = pwsUsersSearchRequest.getStartIndex();
+
+      Integer pageSize = pwsUsersSearchRequest.getCount();
+
+      int maxResults = PersonWebServiceServerConfig.retrieveConfig().propertyValueInt("pws.users.search.maxResults", 1000);
+
+      if (pageSize == null || pageSize > maxResults) {
+        pageSize = maxResults;
+      }
       
-      //do a query to get the data
-      List<String[]> results = HibernateSession.bySqlStatic().listSelect(String[].class, 
-          "select * from (select the_row.*, rownum the_row_num from (" + sql.toString() + " ) the_row) where the_row_num < ?", params);
+      {
+        //get the count
+        int totalResults = HibernateSession.bySqlStatic().select(int.class, "select count(1) " + sqlWithoutSelect.toString(), params);
   
+        pwsNode.assignField("totalResults", new PwsNode(totalResults));
+      }      
+
+      //do a query to get the data if we are getting any data
+      List<String[]> results = null;
+      
+      if (pageSize > 0) {
+        params.add(startIndex);
+        params.add(startIndex + pageSize - 1);
+
+        //  "totalResults":100,
+        //  "itemsPerPage":10,
+        //  "startIndex":1,
+        
+        pwsNode.assignField("startIndex", new PwsNode(startIndex));
+        pwsNode.assignField("itemsPerPage", new PwsNode(pageSize));
+        
+        results = HibernateSession.bySqlStatic().listSelect(String[].class, 
+            "select * from (select the_row.*, rownum the_row_num from (" + selectClause + sqlWithoutSelect.toString() 
+            + orderByClause + " ) the_row) where the_row_num between ? and ?", params);
+      }
+      pwsNode.assignField("totalResults", new PwsNode(PersonWsServerUtils.length(results)));
+
       //  "meta": {
       //    "resourceType": "User",
       //    "created": "2010-01-23T04:56:22Z",
@@ -445,10 +490,11 @@ public class PwsRestLogic {
       {
         pwsNode.assignField("meta", metaNode);
         metaNode.assignField("resourceType", new PwsNode("UserList"));
+        metaNode.assignField("location", new PwsNode(
+            PersonWebServiceServerConfig.retrieveConfig().propertyValueStringRequired("personWsServer.appUrlBase") + "personWs/v1/Users"));
+
       }
 
-      pwsNode.assignField("totalResults", new PwsNode(PersonWsServerUtils.length(results)));
-      
       //  {
       //    "schemas":["urn:scim:schemas:core:1.0"],
       //    "totalResults":2,
