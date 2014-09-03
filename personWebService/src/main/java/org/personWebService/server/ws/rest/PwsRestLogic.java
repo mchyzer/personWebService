@@ -67,12 +67,15 @@ public class PwsRestLogic {
       
       trafficLogMap.put("id", id);
 
-      
-      //lets validate the id
-      if (!id.matches("[a-zA-Z0-9]+")) {
-        throw new RuntimeException("Invalid id: " + id);
-      }
-      
+      //# if id's should be validated by regex, leave blank if shouldnt be validated
+      //pws.getPersonById_idRegex = [a-zA-Z0-9-_@\.]+
+      String idRegex = PersonWebServiceServerConfig.retrieveConfig().propertyValueString("pws.getPersonById_idRegex");
+      if (!StringUtils.isBlank(idRegex)) {
+        //lets validate the id
+        if (!id.matches(idRegex)) {
+          throw new RuntimeException("Invalid id: " + id);
+        }
+      }      
       PwsNode pwsNode = new PwsNode(PwsNodeType.object);
       
       pwsResponseBean.setPwsNode(pwsNode);

@@ -58,8 +58,8 @@ public class UsersSearchTest extends TestCase {
     //HttpMethodBase httpMethodBase = new GetMethod("http://localhost:8089/personWebService/personWs/v1/Users?xCiferSplitTrim=true&filter=urn%3Ascim%3Aschemas%3Aextension%3Acifer%3A2.0%3AUser%3AsearchDescription%20co%20%22Chris%20yzer%22&contentType=json&indent=true");
     //HttpMethodBase httpMethodBase = new GetMethod("https://fasttest-small-a-01.apps.upenn.edu/personWebService/personWs/v1/Users?xCiferSplitTrim=true&filter=xCiferDescription%20co%20%22Chris%20yzer%22&contentType=json&indent=true");
 
-    HttpMethodBase httpMethodBase = new GetMethod("http://localhost:8089/personWebService/personWs/v1/Users?xCiferSplitTrim=true&filter=userName%20eq%20%22mchyzer%22&contentType=json&indent=true");
-    //HttpMethodBase httpMethodBase = new GetMethod("https://fasttest-small-a-01.apps.upenn.edu/personWebService/personWs/v1/Users?xCiferSplitTrim=true&filter=userName%20eq%20%22mchyzer%22&contentType=json&indent=true");
+    //HttpMethodBase httpMethodBase = new GetMethod("http://localhost:8089/personWebService/personWs/v1/Users?xCiferSplitTrim=true&filter=userName%20eq%20%22mchyzer%22&contentType=json&indent=true");
+    HttpMethodBase httpMethodBase = new GetMethod("https://fasttest-small-a-01.apps.upenn.edu/personWebService/personWs/v1/Users?xCiferSplitTrim=true&filter=userName%20eq%20%22mchyzer%22&contentType=json&indent=true");
 
     //filter=userName eq "jsmith" 
     

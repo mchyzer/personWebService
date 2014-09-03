@@ -82,5 +82,24 @@
     statistics="false"
   />
 
+  <cache name="org.personWebService.server.operation.PwsOperation.operationParseCache"
+    maxElementsInMemory="100000"
+    eternal="false"
+    timeToIdleSeconds="36000"
+    timeToLiveSeconds="36000"
+    overflowToDisk="false"
+    statistics="false"
+  />
+
+  <cache name="org.personWebService.server.operation.PwsOperationStep.operationStepParseCache"
+    maxElementsInMemory="100000"
+    eternal="false"
+    timeToIdleSeconds="36000"
+    timeToLiveSeconds="36000"
+    overflowToDisk="false"
+    statistics="false"
+  />
+
+
 
 </ehcache>
