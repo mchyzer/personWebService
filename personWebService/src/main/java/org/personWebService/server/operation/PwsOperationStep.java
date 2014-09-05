@@ -6,9 +6,12 @@ package org.personWebService.server.operation;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
 import org.personWebService.server.cache.PersonWsCache;
+import org.personWebService.server.util.PersonWsServerUtils;
 
 
 /**
@@ -17,6 +20,61 @@ import org.personWebService.server.cache.PersonWsCache;
 public class PwsOperationStep {
 
   /**
+   * <pre>
+   * array index pattern
+   * ^\s*([^\[]+)\s*\[\s*(\d+)\s*\]\s*$
+   * ^\s*      start of string followed by optional whitespace
+   * ([^\[]+)  name of the array (captured) is a bunch of stuff not an open bracket
+   * \s*\[     optional whitespace then an open bracket
+   * \s*(\d+)  optional whitespace then some numbers (captured)
+   * \s*\]     optional whitespace then a close bracket
+   * \s*$      optional whitespace then end of string
+   * </pre>
+   */
+  private static Pattern arrayIndexPattern = Pattern.compile("^\\s*([^\\[]+)\\s*\\[\\s*(\\d+)\\s*\\]\\s*$");
+  
+  /**
+   * create a pws operation step
+   * @param fromFieldName 
+   * @param operationExpression
+   * @return the operation step
+   */
+  public static PwsOperationStep create(String fromFieldName, String operationExpression) {
+
+    PwsOperationStep pwsOperationStep = new PwsOperationStep();
+    pwsOperationStep.setFromFieldName(fromFieldName);
+    
+    int leftBracketIndex = operationExpression.indexOf("[");
+    if (leftBracketIndex > -1) {
+    
+        Matcher matcher = arrayIndexPattern.matcher(operationExpression);
+        
+        if (matcher.matches()) {
+          
+          String fieldName = matcher.group(1);
+          String indexString = matcher.group(2);
+          int index = PersonWsServerUtils.intValue(indexString);
+
+          pwsOperationStep.setArrayIndex(index);
+          pwsOperationStep.setFieldName(fieldName);
+          pwsOperationStep.setPwsOperationStepEnum(PwsOperationStepEnum.traverseArray);
+
+        } else  {
+          throw new RuntimeException("Why doesnt matcher match??? '" + operationExpression + "'");
+        }
+      
+    } else {
+    
+      pwsOperationStep.setPwsOperationStepEnum(PwsOperationStepEnum.traverseField);
+      pwsOperationStep.setFieldName(operationExpression);
+
+    }
+    
+    return pwsOperationStep;
+
+  }
+  
+  /**
    * cache the operation parsing for 10 hours
    */
   private static PersonWsCache<String, List<PwsOperationStep>> operationStepParseCache = new PersonWsCache<String, List<PwsOperationStep>>(
@@ -24,10 +82,11 @@ public class PwsOperationStep {
 
   /**
    * parse an expression part that gives an operation
+   * @param fromFieldName where this field is coming from, for debugging purposes
    * @param expression
    * @return the list of step
    */
-  public static List<PwsOperationStep> parseExpression(String expression) {
+  public static List<PwsOperationStep> parseExpression(String fromFieldName, String expression) {
 
     List<PwsOperationStep> pwsOperationSteps = operationStepParseCache.get(expression);
     
@@ -40,11 +99,21 @@ public class PwsOperationStep {
 
         if (!expression.contains(".")) {
           
-          PwsOperationStep pwsOperationStep = new PwsOperationStep();
-          pwsOperationStep.setFieldName(expression);
-          pwsOperationStep.setPwsOperationStepEnum(PwsOperationStepEnum.traverseField);
+          PwsOperationStep pwsOperationStep = PwsOperationStep.create(fromFieldName, expression);
           pwsOperationSteps.add(pwsOperationStep);
 
+        } else {
+          
+          //lets traverse down
+          String[] expressionParts = PersonWsServerUtils.splitTrim(expression, ".");
+          PwsOperationStep previousStep = null;
+          for (String expressionPart : expressionParts) {
+            PwsOperationStep pwsOperationStep = PwsOperationStep.create(
+                previousStep == null ? null : previousStep.getFieldName(), expressionPart);
+            pwsOperationSteps.add(pwsOperationStep);
+            previousStep = pwsOperationStep;
+          }
+          
         }
         
       }
@@ -81,11 +150,36 @@ public class PwsOperationStep {
     this.pwsOperationStepEnum = pwsOperationStepEnum1;
   }
 
+  /**
+   * array index
+   */
+  private int arrayIndex;
+  
+  /**
+   * array index
+   * @return the arrayIndex
+   */
+  public int getArrayIndex() {
+    return this.arrayIndex;
+  }
+  
+  /**
+   * array index
+   * @param arrayIndex1 the arrayIndex to set
+   */
+  public void setArrayIndex(int arrayIndex1) {
+    this.arrayIndex = arrayIndex1;
+  }
 
   /**
    * fieldName of the stem
    */
   private String fieldName;
+  
+  /**
+   * field name we are coming from (for debugging reasons)
+   */
+  private String fromFieldName;
 
   
   /**
@@ -101,6 +195,22 @@ public class PwsOperationStep {
    */
   public void setFieldName(String fieldName1) {
     this.fieldName = fieldName1;
+  }
+
+  /**
+   * field name we are coming from (for debugging reasons)
+   * @return the fromFieldName
+   */
+  public String getFromFieldName() {
+    return this.fromFieldName;
+  }
+
+  /**
+   * field name we are coming from (for debugging reasons)
+   * @param fromFieldName1 the fromFieldName to set
+   */
+  public void setFromFieldName(String fromFieldName1) {
+    this.fromFieldName = fromFieldName1;
   }
   
   

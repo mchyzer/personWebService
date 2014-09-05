@@ -13,6 +13,27 @@ import org.personWebService.server.beans.PwsNode;
 public class PwsNodeEvaluationResult {
 
   /**
+   * if changed array type
+   */
+  private boolean changedArrayType = false;
+  
+  /**
+   * if changed array type
+   * @return the changedArrayType
+   */
+  public boolean isChangedArrayType() {
+    return this.changedArrayType;
+  }
+  
+  /**
+   * if changed array type
+   * @param changedArrayType1 the changedArrayType to set
+   */
+  public void setChangedArrayType(boolean changedArrayType1) {
+    this.changedArrayType = changedArrayType1;
+  }
+
+  /**
    * node that this evaluates to
    */
   private PwsNode pwsNode;

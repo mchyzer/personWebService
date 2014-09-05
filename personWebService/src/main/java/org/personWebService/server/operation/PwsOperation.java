@@ -85,8 +85,8 @@ public class PwsOperation {
           String destinationPart = operationParts[0];
           String sourcePart = operationParts[1];
           
-          pwsOperation.destinationPwsOperationSteps = PwsOperationStep.parseExpression(destinationPart);
-          pwsOperation.sourcePwsOperationSteps = PwsOperationStep.parseExpression(sourcePart);
+          pwsOperation.destinationPwsOperationSteps = PwsOperationStep.parseExpression(null, destinationPart);
+          pwsOperation.sourcePwsOperationSteps = PwsOperationStep.parseExpression(null, sourcePart);
           
         } else {
           throw new RuntimeException("Not expecting operation");

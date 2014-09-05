@@ -23,6 +23,27 @@ import org.personWebService.server.util.PersonWsServerUtils;
 public class PwsNode {
 
   /**
+   * field name we are coming from (for debugging reasons)
+   */
+  private String fromFieldName;
+  
+  /**
+   * field name we are coming from (for debugging reasons)
+   * @return the fromFieldName
+   */
+  public String getFromFieldName() {
+    return this.fromFieldName;
+  }
+  
+  /**
+   * field name we are coming from (for debugging reasons)
+   * @param fromFieldName1 the fromFieldName to set
+   */
+  public void setFromFieldName(String fromFieldName1) {
+    this.fromFieldName = fromFieldName1;
+  }
+
+  /**
    * 
    * @param someInteger
    */
@@ -105,6 +126,21 @@ public class PwsNode {
 
     base.assignField("sub", sub);
 
+    PwsNode sub1 = new PwsNode(PwsNodeType.object);
+    sub1.assignField("subInteger", new PwsNode(37L));
+    sub1.assignField("subString", new PwsNode("sub string"));
+    PwsNode sub2 = new PwsNode(PwsNodeType.object);
+    sub2.assignField("subInteger", new PwsNode(37L));
+    sub2.assignField("subString", new PwsNode("sub string"));
+    
+    PwsNode arraySub = new PwsNode(PwsNodeType.object);
+    arraySub.setArrayType(true);
+    
+    arraySub.addArrayItem(sub1);
+    arraySub.addArrayItem(sub2);
+    
+    base.assignField("arraySub", arraySub);
+
     PwsNode arrayInteger = new PwsNode(PwsNodeType.integer);
     arrayInteger.setArrayType(true);
     arrayInteger.addArrayItem(new PwsNode(28L));
@@ -123,6 +159,8 @@ public class PwsNode {
 
     String json = base.toJson();
 
+    //{"someInteger":45,"someFloat":34.567,"someFloatInt":34,"someBoolTrue":true,"someBoolFalse":false,"someString":"some string","sub":{"subInteger":37,"subString":"sub string"},"arraySub":[{"subInteger":37,"subString":"sub string"},{"subInteger":37,"subString":"sub string"}],"arrayInteger":[28,17,9],"arrayString":["abc","123","true"]}
+    
     System.out.println(json);
     
     PwsNode anotherNode = PwsNode.fromJson(json);
@@ -137,37 +175,44 @@ public class PwsNode {
 
   /**
    * convert from object to pws object
+   * @param fromFieldName field name this is assigned to (for debugging)
    * @param value
    * @return the PwsObject
    */
-  private static PwsNode convertFromJsonObject(Object value) {
+  private static PwsNode convertFromJsonObject(String fromFieldName, Object value) {
     
     if (value == null) {
-      return new PwsNode(PwsNodeType.object);
+      PwsNode result = new PwsNode(PwsNodeType.object);
+      result.setFromFieldName(fromFieldName);
+      return result;
     }
       
     if (value instanceof Boolean) {
       
-      return new PwsNode((Boolean)value);
-      
+      PwsNode result = new PwsNode((Boolean)value);
+      result.setFromFieldName(fromFieldName);
+      return result;
     }
 
     if (value instanceof Double || value instanceof Float) {
       
-      return new PwsNode(((Number)value).doubleValue());
-
+      PwsNode result = new PwsNode(((Number)value).doubleValue());
+      result.setFromFieldName(fromFieldName);
+      return result;
     }
 
     if (value instanceof Integer || value instanceof Long) {
 
-      return new PwsNode(((Number)value).longValue());
-
+      PwsNode result = new PwsNode(((Number)value).longValue());
+      result.setFromFieldName(fromFieldName);
+      return result;
     } 
 
     if (value instanceof String) {
 
-      return new PwsNode((String)value);
-
+      PwsNode result = new PwsNode((String)value);
+      result.setFromFieldName(fromFieldName);
+      return result;
     } 
 
     if (value instanceof JSONArray) {
@@ -176,6 +221,7 @@ public class PwsNode {
       
       PwsNode pwsNode = new PwsNode();
       pwsNode.setArrayType(true);
+      pwsNode.setFromFieldName(fromFieldName);
       
       boolean foundType = false;
       
@@ -183,7 +229,7 @@ public class PwsNode {
         
         Object arrayObject = jsonArray.get(i);
         
-        PwsNode arrayNode = convertFromJsonObject(arrayObject);
+        PwsNode arrayNode = convertFromJsonObject(fromFieldName, arrayObject);
         if (!foundType) {
           pwsNode.setPwsNodeType(arrayNode.getPwsNodeType());
           foundType = true;
@@ -196,11 +242,12 @@ public class PwsNode {
     if (value instanceof JSONObject) {
       JSONObject jsonObject = (JSONObject)value;
       PwsNode pwsNode = new PwsNode();
+      pwsNode.setFromFieldName(fromFieldName);
       pwsNode.setPwsNodeType(PwsNodeType.object);
       for (String key : (Set<String>)jsonObject.keySet()) {
         
         Object fieldValue = jsonObject.get(key);
-        PwsNode fieldNode = convertFromJsonObject(fieldValue);
+        PwsNode fieldNode = convertFromJsonObject(key, fieldValue);
         pwsNode.assignField(key, fieldNode);
 
       }
@@ -218,7 +265,7 @@ public class PwsNode {
   public static PwsNode fromJson(String json) {
     if (!PersonWsServerUtils.isBlank(json)) {
       JSONObject jsonObject = (JSONObject) JSONSerializer.toJSON( json ); 
-      PwsNode pwsNode = convertFromJsonObject(jsonObject);
+      PwsNode pwsNode = convertFromJsonObject(null, jsonObject);
       return pwsNode;
     }
     return null;
@@ -544,9 +591,9 @@ public class PwsNode {
    */
   public PwsNode retrieveField(String fieldName) {
     if (this.pwsNodeType != PwsNodeType.object) {
-      throw new RuntimeException("expecting node type of object: " + this.pwsNodeType);
+      throw new RuntimeException("expecting node type of object: " + this.pwsNodeType + ", " + fieldName);
     }
-    
+
     if (this.object != null) {
       return this.object.get(fieldName);
     }

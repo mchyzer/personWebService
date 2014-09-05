@@ -4,9 +4,12 @@
  */
 package org.personWebService.server.translation;
 
+import java.util.List;
+
 import org.personWebService.server.beans.PwsNode;
 import org.personWebService.server.beans.PwsNode.PwsNodeType;
 import org.personWebService.server.operation.PwsOperation;
+import org.personWebService.server.operation.PwsOperationStep;
 
 
 /**
@@ -28,7 +31,8 @@ public class PwsNodeTranslation {
     switch (pwsOperation.getPwsOperationEnum()) {
       case assign:
 
-        PwsNodeEvaluationResult pwsNodeEvaluationResult = PwsNodeEvaluation.evaluate(fromNode, pwsOperation.getSourcePwsOperationSteps(), false);
+        List<PwsOperationStep> sourcePwsOperationSteps = pwsOperation.getSourcePwsOperationSteps();
+        PwsNodeEvaluationResult pwsNodeEvaluationResult = PwsNodeEvaluation.evaluate(fromNode, sourcePwsOperationSteps, false);
         
         if (pwsNodeEvaluationResult.getPwsNode() == null) {
           pwsNodeAssignmentResult.setFoundSourceLocation(false);
@@ -36,7 +40,8 @@ public class PwsNodeTranslation {
 
           PwsNode sourceNode = pwsNodeEvaluationResult.getPwsNode();
           
-          pwsNodeEvaluationResult = PwsNodeEvaluation.evaluate(toNode, pwsOperation.getDestinationPwsOperationSteps(), true);
+          List<PwsOperationStep> destinationPwsOperationSteps = pwsOperation.getDestinationPwsOperationSteps();
+          pwsNodeEvaluationResult = PwsNodeEvaluation.evaluate(toNode, destinationPwsOperationSteps, true);
           
           PwsNode destinationNode = pwsNodeEvaluationResult.getPwsNode();
           if (pwsNodeEvaluationResult.isCreatedNode()) {
@@ -80,7 +85,7 @@ public class PwsNodeTranslation {
     if (fromNode.isArrayType()) {
       throw new RuntimeException("Cant handle arrays yet");
     }
-    
+
     //copy all the data over
     switch(fromNode.getPwsNodeType()) {
       case bool:

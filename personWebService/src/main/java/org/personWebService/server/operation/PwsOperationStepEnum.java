@@ -11,6 +11,11 @@ package org.personWebService.server.operation;
 public enum PwsOperationStepEnum {
 
   /**
+   * traverse array
+   */
+  traverseArray,
+  
+  /**
    * simple traverse field
    */
   traverseField;
