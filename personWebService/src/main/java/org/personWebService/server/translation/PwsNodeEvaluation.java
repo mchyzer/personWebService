@@ -44,6 +44,7 @@ public class PwsNodeEvaluation {
             //i dont think we really know the type at this point
             result = new PwsNode(PwsNodeType.object);
             result.setFromFieldName(pwsOperationStep.getFieldName());
+            result.setFromNode(currentNode);
             currentNode.assignField(pwsOperationStep.getFieldName(), result);
             result.setArrayType(true);
           } else {
@@ -71,6 +72,7 @@ public class PwsNodeEvaluation {
             //create some more nodes
             for (int i = 0; i<createItemCount; i++ ) {
               currentArrayNode = new PwsNode(result.getPwsNodeType());
+              currentArrayNode.setFromNode(result);
               currentArrayNode.setFromFieldName(pwsOperationStep.getFieldName());
               result.addArrayItem(currentArrayNode);
             }
@@ -89,6 +91,7 @@ public class PwsNodeEvaluation {
           pwsNodeEvaluationResult.setCreatedNode(true);
           result = new PwsNode(PwsNodeType.object);
           result.setFromFieldName(pwsOperationStep.getFieldName());
+          result.setFromNode(currentNode);
           currentNode.assignField(pwsOperationStep.getFieldName(), result);
         }
         

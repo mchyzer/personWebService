@@ -7,7 +7,6 @@ package org.personWebService.server.translation;
 import java.util.List;
 
 import org.personWebService.server.beans.PwsNode;
-import org.personWebService.server.beans.PwsNode.PwsNodeType;
 import org.personWebService.server.operation.PwsOperation;
 import org.personWebService.server.operation.PwsOperationStep;
 
@@ -86,6 +85,24 @@ public class PwsNodeTranslation {
       throw new RuntimeException("Cant handle arrays yet");
     }
 
+    {
+      PwsNode parentToNode = toNode.getFromNode();
+      //if we made room for arrays, then the type might not be set correctly, so set it
+      if (parentToNode != null && parentToNode.isArrayType()) {
+        if (parentToNode.getPwsNodeType() != fromNode.getPwsNodeType()) {
+          //change type of parent
+          changedType = true;
+          parentToNode.setPwsNodeType(fromNode.getPwsNodeType());
+          //set the type of all children in the array
+          for (PwsNode arrayItemNode : parentToNode.getArray()) {
+            
+            arrayItemNode.setPwsNodeType(fromNode.getPwsNodeType());
+            
+          }
+        }
+      }
+    }
+    
     //copy all the data over
     switch(fromNode.getPwsNodeType()) {
       case bool:
@@ -101,7 +118,8 @@ public class PwsNodeTranslation {
         toNode.setString(fromNode.getString());
         break;
       case object:
-        throw new RuntimeException("Cant handle objects yet");
+        toNode.cloneNode(fromNode);
+        break;
       default: 
         throw new RuntimeException("Not expecting node type: " + fromNode.getPwsNodeType());
         

@@ -28,6 +28,27 @@ public class PwsNode {
   private String fromFieldName;
   
   /**
+   * link back up to the parent node
+   */
+  private PwsNode fromNode;
+  
+  /**
+   * link back up to the parent node
+   * @return the fromNode
+   */
+  public PwsNode getFromNode() {
+    return this.fromNode;
+  }
+  
+  /**
+   * link back up to the parent node
+   * @param fromNode1 the fromNode to set
+   */
+  public void setFromNode(PwsNode fromNode1) {
+    this.fromNode = fromNode1;
+  }
+
+  /**
    * field name we are coming from (for debugging reasons)
    * @return the fromFieldName
    */
@@ -175,14 +196,16 @@ public class PwsNode {
 
   /**
    * convert from object to pws object
+   * @param fromNode parent node
    * @param fromFieldName field name this is assigned to (for debugging)
    * @param value
    * @return the PwsObject
    */
-  private static PwsNode convertFromJsonObject(String fromFieldName, Object value) {
+  private static PwsNode convertFromJsonObject(PwsNode fromNode, String fromFieldName, Object value) {
     
     if (value == null) {
       PwsNode result = new PwsNode(PwsNodeType.object);
+      result.setFromNode(fromNode);
       result.setFromFieldName(fromFieldName);
       return result;
     }
@@ -190,6 +213,7 @@ public class PwsNode {
     if (value instanceof Boolean) {
       
       PwsNode result = new PwsNode((Boolean)value);
+      result.setFromNode(fromNode);
       result.setFromFieldName(fromFieldName);
       return result;
     }
@@ -197,6 +221,7 @@ public class PwsNode {
     if (value instanceof Double || value instanceof Float) {
       
       PwsNode result = new PwsNode(((Number)value).doubleValue());
+      result.setFromNode(fromNode);
       result.setFromFieldName(fromFieldName);
       return result;
     }
@@ -204,6 +229,7 @@ public class PwsNode {
     if (value instanceof Integer || value instanceof Long) {
 
       PwsNode result = new PwsNode(((Number)value).longValue());
+      result.setFromNode(fromNode);
       result.setFromFieldName(fromFieldName);
       return result;
     } 
@@ -211,6 +237,7 @@ public class PwsNode {
     if (value instanceof String) {
 
       PwsNode result = new PwsNode((String)value);
+      result.setFromNode(fromNode);
       result.setFromFieldName(fromFieldName);
       return result;
     } 
@@ -221,6 +248,7 @@ public class PwsNode {
       
       PwsNode pwsNode = new PwsNode();
       pwsNode.setArrayType(true);
+      pwsNode.setFromNode(fromNode);
       pwsNode.setFromFieldName(fromFieldName);
       
       boolean foundType = false;
@@ -229,7 +257,7 @@ public class PwsNode {
         
         Object arrayObject = jsonArray.get(i);
         
-        PwsNode arrayNode = convertFromJsonObject(fromFieldName, arrayObject);
+        PwsNode arrayNode = convertFromJsonObject(fromNode, fromFieldName, arrayObject);
         if (!foundType) {
           pwsNode.setPwsNodeType(arrayNode.getPwsNodeType());
           foundType = true;
@@ -242,12 +270,13 @@ public class PwsNode {
     if (value instanceof JSONObject) {
       JSONObject jsonObject = (JSONObject)value;
       PwsNode pwsNode = new PwsNode();
+      pwsNode.setFromNode(fromNode);
       pwsNode.setFromFieldName(fromFieldName);
       pwsNode.setPwsNodeType(PwsNodeType.object);
       for (String key : (Set<String>)jsonObject.keySet()) {
         
         Object fieldValue = jsonObject.get(key);
-        PwsNode fieldNode = convertFromJsonObject(key, fieldValue);
+        PwsNode fieldNode = convertFromJsonObject(pwsNode, key, fieldValue);
         pwsNode.assignField(key, fieldNode);
 
       }
@@ -265,7 +294,7 @@ public class PwsNode {
   public static PwsNode fromJson(String json) {
     if (!PersonWsServerUtils.isBlank(json)) {
       JSONObject jsonObject = (JSONObject) JSONSerializer.toJSON( json ); 
-      PwsNode pwsNode = convertFromJsonObject(null, jsonObject);
+      PwsNode pwsNode = convertFromJsonObject(null, null, jsonObject);
       return pwsNode;
     }
     return null;
@@ -283,6 +312,78 @@ public class PwsNode {
     
   }
 
+  /**
+   * assign an object from the fromObject to this object
+   * @param theFromNode
+   */
+  public void cloneNode(PwsNode theFromNode) {
+    this.cloneNodeHelper(theFromNode);
+  }
+
+  /**
+   * assign an object from the fromObject to this object
+   * @param theFromNode
+   */
+  private void cloneNodeHelper(PwsNode theFromNode) {
+
+    //copy over data
+    this.arrayType = theFromNode.arrayType;
+    this.bool = theFromNode.bool;
+    this.floating = theFromNode.floating;
+    //name and node might be different
+    //this.fromFieldName = fromNode.fromFieldName
+    //this.fromNode = theFromNode.fromNode;
+    this.integer = theFromNode.integer;
+    this.pwsNodeType = theFromNode.pwsNodeType;
+    this.string = theFromNode.string;
+
+    //we need to clone the field
+    if (this.pwsNodeType == PwsNodeType.object && theFromNode.object != null && theFromNode.object.keySet() != null) {
+      
+      //go through each field in the object
+      for (String fieldName : theFromNode.object.keySet()) {
+        
+        PwsNode field = theFromNode.object.get(fieldName);
+        PwsNode clonedField = null;
+        if (field != null) {
+          clonedField = new PwsNode();
+          clonedField.setFromFieldName(fieldName);
+          clonedField.setFromNode(this);
+          clonedField.cloneNode(field);
+        }
+        this.assignField(fieldName, clonedField);
+      }
+      
+    }
+    
+    if (this.arrayType && theFromNode.array != null && theFromNode.array.size() > 0) {
+      //we need to clone each item in the array
+      for (PwsNode arrayElementNode : theFromNode.array) {
+        PwsNode clonedField = null;
+        if (arrayElementNode != null) {
+          clonedField = new PwsNode();
+          //should this be an array index???
+          clonedField.setFromFieldName(this.getFromFieldName());
+          clonedField.setFromNode(this);
+          clonedField.cloneNode(arrayElementNode);
+        }
+        this.addArrayItem(clonedField);
+      }
+    }
+    
+  }
+
+  /**
+   * get the array if this is array type
+   * @return the array
+   */
+  public List<PwsNode> getArray() {
+    if (!this.isArrayType()) {
+      throw new RuntimeException("Not array type");
+    }
+    return this.array;
+  }
+  
   /**
    * 
    * @return the json object
