@@ -29,7 +29,7 @@ public class PwsNodeTranslationTest extends TestCase {
    */
   public PwsNodeTranslationTest(String name) {
     super(name);
-    
+
   }
 
   /**
@@ -37,7 +37,7 @@ public class PwsNodeTranslationTest extends TestCase {
    * @param args
    */
   public static void main(String[] args) {
-    TestRunner.run(new PwsNodeTranslationTest("testTranslateObject"));
+    TestRunner.run(new PwsNodeTranslationTest("testTranslateArrayScalarAssignmentQuotedFields"));
     //TestRunner.run(PwsNodeTranslationTest.class);
   }
 
@@ -149,6 +149,73 @@ public class PwsNodeTranslationTest extends TestCase {
   }
 
 
+  /**
+   * someField.another = someField2.another2   (array of scalars)
+   */
+  public void testTranslateArrayOfScalars() {
+
+    //{"someInteger":45,"someFloat":34.567,"someFloatInt":34,"someBoolTrue":true,"someBoolFalse":false,"someString":"some string","sub":{"subInteger":37,"subString":"sub string"},"arraySub":[{"subInteger":37,"subString":"sub string"},{"subInteger":37,"subString":"sub string"}],"arrayInteger":[28,17,9],"arrayString":["abc","123","true"]}
+    PwsNode dataNode = PwsNode.fromJson("{\"someField2\":{\"another3\":3.45,\"another2\":{\"arraySub\":[23,45]}}}");
+    
+    PwsNode newNode = new PwsNode();
+    newNode.setPwsNodeType(PwsNodeType.object);
+
+    PwsNodeTranslation.assign(newNode, dataNode, "someField.another = someField2.another2.arraySub");
+
+    
+    assertEquals(new Long(23), dataNode.retrieveField("someField2").retrieveField("another2").retrieveField("arraySub").retrieveArrayItem(0).getInteger());
+    assertEquals(new Long(23), newNode.retrieveField("someField").retrieveField("another").retrieveArrayItem(0).getInteger());
+
+    assertEquals(dataNode.toJson(), "{\"someField2\":{\"another3\":3.45,\"another2\":{\"arraySub\":[23,45]}}}", dataNode.toJson());
+    assertEquals(newNode.toJson(), "{\"someField\":{\"another\":[23,45]}}", newNode.toJson());
+  }
+
+  /**
+   * someField.another = someField2.another2   (array of objects)
+   */
+  public void testTranslateObjectArray() {
+
+    //{"someInteger":45,"someFloat":34.567,"someFloatInt":34,"someBoolTrue":true,"someBoolFalse":false,"someString":"some string","sub":{"subInteger":37,"subString":"sub string"},"arraySub":[{"subInteger":37,"subString":"sub string"},{"subInteger":37,"subString":"sub string"}],"arrayInteger":[28,17,9],"arrayString":["abc","123","true"]}
+    PwsNode dataNode = PwsNode.fromJson("{\"someField2\":{\"another3\":3.45,\"another2\":{\"arraySub\":[{\"subInteger\":37,\"subString\":\"sub string\"},{\"subInteger\":37,\"subString\":\"sub string\"}]}}}");
+    
+    PwsNode newNode = new PwsNode();
+    newNode.setPwsNodeType(PwsNodeType.object);
+
+    PwsNodeTranslation.assign(newNode, dataNode, "someField.another = someField2.another2.arraySub");
+
+    
+    assertEquals(new Long(37), dataNode.retrieveField("someField2").retrieveField("another2").retrieveField("arraySub").retrieveArrayItem(0).retrieveField("subInteger").getInteger());
+    assertEquals(new Long(37), newNode.retrieveField("someField").retrieveField("another").retrieveArrayItem(0).retrieveField("subInteger").getInteger());
+
+    assertEquals(dataNode.toJson(), "{\"someField2\":{\"another3\":3.45,\"another2\":{\"arraySub\":[{\"subInteger\":37,\"subString\":\"sub string\"},{\"subInteger\":37,\"subString\":\"sub string\"}]}}}", dataNode.toJson());
+    assertEquals(newNode.toJson(), "{\"someField\":{\"another\":[{\"subInteger\":37,\"subString\":\"sub string\"},{\"subInteger\":37,\"subString\":\"sub string\"}]}}", newNode.toJson());
+  }
+
+  /**
+   * 
+   * "someField:complicate.whatever"."someField:complicate.another"[2] = "someField2:complicate2.whatever2"."someField2:complicate.another2"[3]
+   */
+  public void testTranslateArrayScalarAssignmentQuotedFields() {
+
+    //{"someInteger":45,"someFloat":34.567,"someFloatInt":34,"someBoolTrue":true,"someBoolFalse":false,"someString":"some string","sub":{"subInteger":37,"subString":"sub string"},"arraySub":[{"subInteger":37,"subString":"sub string"},{"subInteger":37,"subString":"sub string"}],"arrayInteger":[28,17,9],"arrayString":["abc","123","true"]}
+    PwsNode dataNode = PwsNode.fromJson("{\"someField2:complicate2.whatever2\":{\"someField2:complicate.another2\":[\"a\",\"b\",\"c\",\"d\",\"e\"]}}");
+
+    PwsNode newNode = new PwsNode();
+    newNode.setPwsNodeType(PwsNodeType.object);
+
+    PwsNodeTranslation.assign(newNode, dataNode, "\"someField:complicate.whatever\".\"someField:complicate.another\"[2] "
+        + "= \"someField2:complicate2.whatever2\".\"someField2:complicate.another2\"[3]");
+
+    System.out.println(newNode.toJson());
+    
+    assertEquals("d", dataNode.retrieveField("someField2:complicate2.whatever2").retrieveField("someField2:complicate.another2").retrieveArrayItem(3).getString());
+    assertEquals("d", newNode.retrieveField("someField:complicate.whatever").retrieveField("someField:complicate.another").retrieveArrayItem(2).getString());
+
+    assertEquals("{\"someField2:complicate2.whatever2\":{\"someField2:complicate.another2\":[\"a\",\"b\",\"c\",\"d\",\"e\"]}}", dataNode.toJson());
+    assertEquals("{\"someField:complicate.whatever\":{\"someField:complicate.another\":[null,null,\"d\"]}}", newNode.toJson());
+
+  }
+
 
   /**
    * someField = someField
@@ -171,9 +238,7 @@ public class PwsNodeTranslationTest extends TestCase {
     assertEquals("{\"someField\":\"someValue\"}", dataNode.toJson());
 
     //Tests:
-    // someField.another = someField2.another2   (object)
-    // someField.another = someField2.another2   (array of scalars)
-    // someField.another = someField2.another2   (array of objects)
+    // "someField:compl[icate.whatever"."someField:complic[ate.another"[2] = "someField2:complic[ate2.whatever2"."someField2:co[mplicate.another2"[3]
     // "someField:complicate.whatever"."someField:complicate.another"[3] = "someField2:complicate2.whatever2"."someField2:complicate.another2"[3]
     // "someField:comp&quot;lic&amp;ate.whatever"."someField:complicate.another"[3] = "someField2:complicate2.whatever2"."someField2:complicate.another2"[3]
     // someField.another[@lang='en'] = someField2.another2[@lang='fr']

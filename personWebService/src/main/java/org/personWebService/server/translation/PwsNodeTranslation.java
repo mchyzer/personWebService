@@ -82,7 +82,7 @@ public class PwsNodeTranslation {
     }
 
     if (fromNode.isArrayType()) {
-      throw new RuntimeException("Cant handle arrays yet");
+      toNode.cloneNode(fromNode);
     }
 
     {
@@ -118,7 +118,10 @@ public class PwsNodeTranslation {
         toNode.setString(fromNode.getString());
         break;
       case object:
-        toNode.cloneNode(fromNode);
+        //already cloned if array
+        if (!fromNode.isArrayType()) {
+          toNode.cloneNode(fromNode);
+        }
         break;
       default: 
         throw new RuntimeException("Not expecting node type: " + fromNode.getPwsNodeType());

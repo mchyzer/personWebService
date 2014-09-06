@@ -74,7 +74,7 @@ public class PwsOperation {
         //see if it is an assignment
         if (workingOperationString.contains("=")) {
           
-          String[] operationParts = PersonWsServerUtils.splitTrim(workingOperationString, "=");
+          String[] operationParts = PersonWsServerUtils.splitTrimQuoted(workingOperationString, "=");
           
           if (operationParts.length > 2) {
             throw new RuntimeException("Assignments cannot have more than one equals sign! " + operationParts.length);

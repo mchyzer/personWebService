@@ -43,20 +43,20 @@ public class PwsOperationStep {
 
     PwsOperationStep pwsOperationStep = new PwsOperationStep();
     pwsOperationStep.setFromFieldName(fromFieldName);
-    
-    int leftBracketIndex = operationExpression.indexOf("[");
+    String fieldName = null;
+    //TODO ignore quoted
+    int leftBracketIndex = operationExpression.lastIndexOf("[");
     if (leftBracketIndex > -1) {
     
         Matcher matcher = arrayIndexPattern.matcher(operationExpression);
         
         if (matcher.matches()) {
           
-          String fieldName = matcher.group(1);
+          fieldName = matcher.group(1);
           String indexString = matcher.group(2);
           int index = PersonWsServerUtils.intValue(indexString);
 
           pwsOperationStep.setArrayIndex(index);
-          pwsOperationStep.setFieldName(fieldName);
           pwsOperationStep.setPwsOperationStepEnum(PwsOperationStepEnum.traverseArray);
 
         } else  {
@@ -66,10 +66,17 @@ public class PwsOperationStep {
     } else {
     
       pwsOperationStep.setPwsOperationStepEnum(PwsOperationStepEnum.traverseField);
-      pwsOperationStep.setFieldName(operationExpression);
+      fieldName = operationExpression;
 
     }
     
+    if ((fieldName.startsWith("\"") && fieldName.endsWith("\""))
+        || (fieldName.startsWith("'") && fieldName.endsWith("'")) ){
+      fieldName = fieldName.substring(1, fieldName.length()-1);
+    }
+    pwsOperationStep.setFieldName(fieldName);
+    
+
     return pwsOperationStep;
 
   }
@@ -105,9 +112,10 @@ public class PwsOperationStep {
         } else {
           
           //lets traverse down
-          String[] expressionParts = PersonWsServerUtils.splitTrim(expression, ".");
+          String[] expressionParts = PersonWsServerUtils.splitTrimQuoted(expression, ".");
           PwsOperationStep previousStep = null;
           for (String expressionPart : expressionParts) {
+            
             PwsOperationStep pwsOperationStep = PwsOperationStep.create(
                 previousStep == null ? null : previousStep.getFieldName(), expressionPart);
             pwsOperationSteps.add(pwsOperationStep);

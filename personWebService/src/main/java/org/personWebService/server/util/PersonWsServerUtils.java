@@ -9573,7 +9573,7 @@ public class PersonWsServerUtils {
     for (int i=namePart.length()-1;i>=0;i--) {
       
       Character theChar = namePart.charAt(i);
-      if (theChar.isLetterOrDigit(theChar)) {
+      if (Character.isLetterOrDigit(theChar)) {
         break;
       }
       
@@ -11818,12 +11818,12 @@ public class PersonWsServerUtils {
    * @return true if temp file
    */
   public static boolean isTempFile(File file) {
-    String tempDirLocation = tempFileDirLocation();
+    String theTempDirLocation = tempFileDirLocation();
     //convert this to canonical path
-    tempDirLocation = canonicalPath(new File(tempDirLocation));
+    theTempDirLocation = canonicalPath(new File(theTempDirLocation));
     String canonicalPath = canonicalPath(file);
     //dont let it equal the temp dir, must be in temp dir
-    return !StringUtils.equals(canonicalPath, tempDirLocation) && canonicalPath.startsWith(tempDirLocation);
+    return !StringUtils.equals(canonicalPath, theTempDirLocation) && canonicalPath.startsWith(theTempDirLocation);
   }
 
   /**
@@ -12359,6 +12359,247 @@ public class PersonWsServerUtils {
       return true;
     }
     return false;
+  }
+
+  /**
+   * <pre>
+   * split trim but dont deal with things in single or double quotes
+   * e.g. if input is:     "someField:complicate.whatever"."someField:complicate.another"[2]
+   * and you splitOn dot
+   * then you should get two strings back:  "someField:complicate.whatever" and "someField:complicate.another"[2]
+   * @param input
+   * @param splitOn
+   * @return the strings that are splittrimmed
+   */
+  public static String[] splitTrimQuoted(String input, String splitOn) {
+    if (input == null) {
+      return null;
+    }
+    
+    // this is just too confusing, dont allow
+    if (splitOn.contains("\"") || splitOn.contains("'")) {
+      throw new RuntimeException("splitOn cannot contain single or double quotes: '" + splitOn + "'");
+    }
+    
+    //if nothing to split on, dont worry about it
+    if (!input.contains(splitOn)) {
+      return new String[]{input.trim()};
+    }
+    //dont mess with it if no quotes
+    if (!input.contains("\"") && !input.contains("'")) {
+      return splitTrim(input, splitOn);
+    }
+    
+    List<Integer> indices = indexOfsQuoted(input, splitOn);
+    
+    if (indices.size() == 0) {
+      return new String[]{input.trim()};
+    }
+    
+    List<String> resultList = new ArrayList<String>();
+    
+    int currentStart = 0;
+    
+    for (int i=0;i<indices.size();i++){
+      int index = indices.get(i);
+      
+      //dont add an empty string at the beginning
+      if (currentStart == 0 && index == 0) {
+        currentStart += splitOn.length();
+        continue;
+      }
+      
+      //add the string
+      String substring = input.substring(currentStart, index);
+      resultList.add(substring.trim());
+      
+      currentStart += substring.length() + splitOn.length();
+      
+      //if we end with an empty string, ignore it
+      if (currentStart >= input.length()-1) {
+        break;
+      }
+    }
+
+    //lets add the last string
+    if (currentStart < input.length()) {
+      String substring = input.substring(currentStart, input.length());
+      resultList.add(substring.trim());
+      
+    }
+    
+    return resultList.toArray(new String[0]);
+  }
+
+  /**
+   * <pre>
+   * get the indices where the substring occurs (dont worry about overlaps), and ignore quoted strings
+   * if the input is ab..cd..ef
+   * and the substring is ..
+   * then return 2,6
+
+   * if the input is ab..c"e..\" '.."d..ef
+   * and the substring is ..
+   * then return 2,17
+   * 
+   * </pre>
+   * @param input
+   * @param substring
+   * @return the list of indices
+   */
+  public static List<Integer> indexOfsQuoted(String input, String substring) {
+    
+    if (input == null) {
+      return null;
+    }
+
+    //ok, we have quotes...  lets get the indices
+    List<Integer> indices = new ArrayList<Integer>();
+    
+    int inputLength = input.length();
+    
+    boolean inSingleQuotes = false;
+    boolean inDoubleQuotes = false;
+    
+    OUTER:
+    for (int i=0;i<inputLength;i++) {
+      char curChar = input.charAt(i);
+      boolean isSingleQuote = curChar == '\'';
+      boolean isDoubleQuote = curChar == '\"';
+      boolean isSlash = curChar == '\\';
+      
+      //if its a single quote, and you are not in quotes, then you are now in single quotes
+      if (isSingleQuote && !inSingleQuotes && !inDoubleQuotes) {
+        inSingleQuotes = true;
+        continue;
+      }
+      //if its a double quote, and you are not in quotes, then you are now in double quotes
+      if (isDoubleQuote && !inSingleQuotes && !inDoubleQuotes) {
+        inDoubleQuotes = true;
+        continue;
+      }
+      //if its a single quote, and you are in double quotes, then ignore
+      if (isSingleQuote && inDoubleQuotes) {
+        continue;
+      }
+      //if its a double quote, and you are in single quotes, then ignore
+      if (isDoubleQuote && inSingleQuotes) {
+        continue;
+      }
+      //if its a single quote, and we are in single quotes, then we arent in single quotes anymore
+      if (isSingleQuote && inSingleQuotes) {
+        inSingleQuotes = false;
+        continue;
+      }
+      //if its a double quote, and we are in double quotes, then we arent in double quotes anymore
+      if (isDoubleQuote && inDoubleQuotes) {
+        inDoubleQuotes = false;
+        continue;
+      }
+      //if its a slash and we are in quotes, then ignore the next char
+      if (isSlash && (inDoubleQuotes || inSingleQuotes)) {
+
+        //not sure why this would happen
+        if (i == inputLength-1) {
+          break;
+        }
+        //we are processing the escaped char
+        i++;
+        continue;
+      }
+      //if we are in single quotes or double quotes, ignore checking for 
+      if (inSingleQuotes || inDoubleQuotes) {
+        continue;
+      }
+      //lets see if we found the string
+      //lets see if there is even space
+      //string is ab..cd..ef
+      //length is 10
+      //index is 6
+      //splitOn is ..
+      //remaining length of string is length-index
+      int remainingLength = inputLength - i;
+      //we are done
+      if (remainingLength < substring.length()) {
+        break;
+      }
+      //see if equals
+      for (int splitOnIndex = 0; splitOnIndex < substring.length(); splitOnIndex++) {
+        if (input.charAt(i+splitOnIndex) != substring.charAt(splitOnIndex)) {
+          continue OUTER;
+        }
+      }
+      //the string was found!
+      //keep track that we found it
+      indices.add(i);
+      //move the pointer forward
+      i += substring.length()-1;
+    }
+    
+    //now we have the indices
+    return indices;
+  }
+  
+  /**
+   * make sure two arrays are equal (of simple objects)
+   * @param a
+   * @param b
+   */
+  public static void assertEqualsArray(Object a, Object b) {
+    if (a == b) {
+      return;
+    }
+    if (a == null) {
+      throw new RuntimeException("expected null, but didnt get null");
+    }
+    if (b == null) {
+      throw new RuntimeException("expected not null, but got null");
+    }
+    int lengthA = Array.getLength(a);
+    int lengthB = Array.getLength(b);
+    if (lengthA != lengthB) {
+      throw new RuntimeException("Expected array of length " + lengthA + ", but received array of length: " + lengthB);
+    }
+    //loop through and see if equal
+    for (int i=0;i<lengthA;i++) {
+      Object objectA = Array.get(a, i);
+      Object objectB = Array.get(b, i);
+      if (!equals(objectA, objectB)) {
+        throw new RuntimeException("Index " + i + ", not equal, expected: " + objectA + ", but received: " + objectB);
+      }
+    }
+    //all good
+  }
+
+  /**
+   * make sure two lists are equal (of simple objects)
+   * @param a
+   * @param b
+   */
+  public static void assertEqualsList(List<?> a, List<?> b) {
+    if (a == b) {
+      return;
+    }
+    if (a == null) {
+      throw new RuntimeException("expected null, but didnt get null");
+    }
+    if (b == null) {
+      throw new RuntimeException("expected not null, but got null");
+    }
+    int lengthA = a.size();
+    int lengthB = b.size();
+    if (lengthA != lengthB) {
+      throw new RuntimeException("Expected array of length " + lengthA + ", but received list of length: " + lengthB);
+    }
+    //loop through and see if equal
+    for (int i=0;i<lengthA;i++) {
+      Object objectA = a.get(i);
+      Object objectB = b.get(i);
+      if (!equals(objectA, objectB)) {
+        throw new RuntimeException("Index " + i + ", not equal, expected: " + objectA + ", but received: " + objectB);
+      }
+    }
+    //all good
   }
 
 }
