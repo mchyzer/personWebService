@@ -232,8 +232,8 @@ public class PwsNodeTranslationTest extends TestCase {
 
     System.out.println(newNode.toJson());
     
-    assertEquals("d", dataNode.retrieveField("some\\\"Field2:complic[ate2.wha=tever2").retrieveField("some\\\"Field:complic[ate.an=other").retrieveArrayItem(3).getString());
-    assertEquals("d", newNode.retrieveField("some\\\"Field:compl[icate.whate=ver").retrieveField("some\\\"Field:complic[ate.an=other").retrieveArrayItem(2).getString());
+    assertEquals("d", dataNode.retrieveField("some\"Field2:complic[ate2.wha=tever2").retrieveField("some\"Field2:co[mplic=ate.another2").retrieveArrayItem(3).getString());
+    assertEquals("d", newNode.retrieveField("some\"Field:compl[icate.whate=ver").retrieveField("some\"Field:complic[ate.an=other").retrieveArrayItem(2).getString());
 
     assertEquals("{\"some\\\"Field2:complic[ate2.wha=tever2\":{\"some\\\"Field2:co[mplic=ate.another2\":[\"a\",\"b\",\"c\",\"d\",\"e\"]}}", dataNode.toJson());
     assertEquals("{\"some\\\"Field:compl[icate.whate=ver\":{\"some\\\"Field:complic[ate.an=other\":[null,null,\"d\"]}}", newNode.toJson());
