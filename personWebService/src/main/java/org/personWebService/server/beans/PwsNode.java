@@ -14,6 +14,7 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
 
+import org.apache.commons.lang.StringUtils;
 import org.personWebService.server.util.PersonWsServerUtils;
 
 
@@ -705,7 +706,116 @@ public class PwsNode {
     
     return this.array.get(index);
   }
+
+  /**
+   * retrieve an array index string
+   * @param attributeName 
+   * @param attributeValue 
+   * @return the node or null if not found, exception if multiple found
+   */
+  public PwsNode retrieveArrayItemByAttributeValue(String attributeName, String attributeValue) {
+    return retrieveArrayItemByAttributeValueHelper(attributeName, attributeValue);
+  }
+
+  /**
+   * retrieve an array index
+   * @param attributeName 
+   * @param attributeValue 
+   * @return the node or null if not found, exception if multiple found
+   */
+  public PwsNode retrieveArrayItemByAttributeValue(String attributeName, Long attributeValue) {
+    return retrieveArrayItemByAttributeValueHelper(attributeName, attributeValue);
+  }
+
+  /**
+   * retrieve an array index
+   * @param attributeName 
+   * @param attributeValue 
+   * @return the node or null if not found, exception if multiple found
+   */
+  public PwsNode retrieveArrayItemByAttributeValue(String attributeName, Double attributeValue) {
+    return retrieveArrayItemByAttributeValueHelper(attributeName, attributeValue);
+  }
+
+  /**
+   * retrieve an array index
+   * @param attributeName 
+   * @param attributeValue 
+   * @return the node or null if not found, exception if multiple found
+   */
+  public PwsNode retrieveArrayItemByAttributeValue(String attributeName, Boolean attributeValue) {
+    return retrieveArrayItemByAttributeValueHelper(attributeName, attributeValue);
+  }
+
   
+  /**
+   * retrieve an array index
+   * @param attributeName 
+   * @param attributeValue 
+   * @return the node or null if not found, exception if multiple found
+   */
+  private PwsNode retrieveArrayItemByAttributeValueHelper(String attributeName, Object attributeValue) {
+    
+    if (!this.arrayType) {
+      throw new RuntimeException("expecting node type of array");
+    }
+
+    int length = PersonWsServerUtils.length(this.array);
+    if (length == 0) {
+      return null;
+    }
+    
+    PwsNode foundNode = null;
+
+    int index = 0;
+    for (PwsNode item : this.array) {
+
+      //loop through the array and get the field by attribute name
+      PwsNode fieldItem = item.retrieveField(attributeName);
+      if (fieldItem != null) {
+        boolean equal = false;
+
+        switch (fieldItem.getPwsNodeType()) {
+
+          case bool:
+            Boolean searchedBoolean = PersonWsServerUtils.booleanObjectValue(attributeValue);
+            equal = PersonWsServerUtils.equals(searchedBoolean, fieldItem.getBool());
+            break;
+
+          case floating:
+            Double searchedDouble = PersonWsServerUtils.doubleObjectValue(attributeValue, true);
+            equal = PersonWsServerUtils.equals(searchedDouble, fieldItem.getFloating());
+            break;
+
+          case integer:
+            Long searchedLong = PersonWsServerUtils.longObjectValue(attributeValue, true);
+            equal = PersonWsServerUtils.equals(searchedLong, fieldItem.getInteger());
+            break;
+
+          case string:
+            String searchedString = PersonWsServerUtils.stringValue(attributeValue);
+            equal = StringUtils.equals(searchedString, fieldItem.getString());
+            break;
+
+          case object:
+            throw new RuntimeException("Not expecting node of type object!  Must be a scalar!  "  + this );
+            
+          default:
+            throw new RuntimeException("Not expecting node type: " + fieldItem.getPwsNodeType() + ", " + this);
+        }
+        
+        if (equal) {
+          if (foundNode != null) {
+            throw new RuntimeException("There are more than one array item to match the attribute: " 
+                + attributeName + ", and attribute value: " + attributeValue + ", node: " + this );
+          }
+          foundNode = item;
+        }
+      }
+    }
+    return foundNode;
+  }
+
   /**
    * assign a field.  Note if null will not remove
    * @param fieldName

@@ -12361,6 +12361,7 @@ public class PersonWsServerUtils {
     return false;
   }
 
+  
   /**
    * <pre>
    * split trim but dont deal with things in single or double quotes
@@ -12387,6 +12388,77 @@ public class PersonWsServerUtils {
     }
     //dont mess with it if no quotes
     if (!input.contains("\"") && !input.contains("'")) {
+      return splitTrim(input, splitOn);
+    }
+    
+    List<Integer> indices = indexOfsQuoted(input, splitOn);
+    
+    if (indices.size() == 0) {
+      return new String[]{input.trim()};
+    }
+    
+    List<String> resultList = new ArrayList<String>();
+    
+    int currentStart = 0;
+    
+    for (int i=0;i<indices.size();i++){
+      int index = indices.get(i);
+      
+      //dont add an empty string at the beginning
+      if (currentStart == 0 && index == 0) {
+        currentStart += splitOn.length();
+        continue;
+      }
+      
+      //add the string
+      String substring = input.substring(currentStart, index);
+      resultList.add(substring.trim());
+      
+      currentStart += substring.length() + splitOn.length();
+      
+      //if we end with an empty string, ignore it
+      if (currentStart >= input.length()-1) {
+        break;
+      }
+    }
+
+    //lets add the last string
+    if (currentStart < input.length()) {
+      String substring = input.substring(currentStart, input.length());
+      resultList.add(substring.trim());
+      
+    }
+    
+    return resultList.toArray(new String[0]);
+  }
+
+  /**
+   * <pre>
+   * split trim but dont deal with things in single or double quotes or things in brackets
+   * e.g. if input is:     "someField:complicate.whatever"."someField:complicate.another"[@attr='val']
+   * and you splitOn dot
+   * then you should get two strings back:  "someField:complicate.whatever" and "someField:complicate.another"[2]
+   * @param input
+   * @param splitOn
+   * @return the strings that are splittrimmed
+   */
+  public static String[] splitTrimQuotedBracketed(String input, String splitOn) {
+    if (input == null) {
+      return null;
+    }
+    
+    // this is just too confusing, dont allow
+    if (splitOn.contains("\"") || splitOn.contains("'") || splitOn.contains("[") || splitOn.contains("]")) {
+      throw new RuntimeException("splitOn cannot contain single or double quotes or brackets: '" + splitOn + "'");
+    }
+    
+    //if nothing to split on, dont worry about it
+    if (!input.contains(splitOn)) {
+      return new String[]{input.trim()};
+    }
+
+    //dont mess with it if no quotes
+    if (!input.contains("\"") && !input.contains("'") && !input.contains("[")) {
       return splitTrim(input, splitOn);
     }
     

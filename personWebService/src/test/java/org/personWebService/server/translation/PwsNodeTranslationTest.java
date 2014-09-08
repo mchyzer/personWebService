@@ -240,6 +240,29 @@ public class PwsNodeTranslationTest extends TestCase {
 
   }
 
+  /**
+   * someField.another = someField2.another2[@lang='fr']
+   */
+  public void testTranslateAttributeValueSelectorObject() {
+
+    //{"someInteger":45,"someFloat":34.567,"someFloatInt":34,"someBoolTrue":true,"someBoolFalse":false,"someString":"some string","sub":{"subInteger":37,"subString":"sub string"},"arraySub":[{"subInteger":37,"subString":"sub string"},{"subInteger":37,"subString":"sub string"}],"arrayInteger":[28,17,9],"arrayString":["abc","123","true"]}
+    PwsNode dataNode = PwsNode.fromJson("{\"someField2\":{\"another2\":[{\"lang\":\"fr\",\"aField2\":\"theVal\"},{\"lang\":\"en\",\"aField2\":\"theVal2\"}]}}");
+
+    PwsNode newNode = new PwsNode();
+    newNode.setPwsNodeType(PwsNodeType.object);
+
+    PwsNodeTranslation.assign(newNode, dataNode, "someField.another = someField2.another2[@lang='fr']");
+
+    System.out.println(newNode.toJson());
+    
+    assertEquals("theVal", dataNode.retrieveField("someField2").retrieveField("another2").retrieveArrayItemByAttributeValue("lang", "fr").retrieveField("aField2").getString());
+    assertEquals("theVal", newNode.retrieveField("someField").retrieveField("another").retrieveField("aField2").getString());
+
+    assertEquals("{\"some\\\"Field2:complic[ate2.wha=tever2\":{\"some\\\"Field2:co[mplic=ate.another2\":[\"a\",\"b\",\"c\",\"d\",\"e\"]}}", dataNode.toJson());
+    assertEquals("{\"some\\\"Field:compl[icate.whate=ver\":{\"some\\\"Field:complic[ate.an=other\":[null,null,\"d\"]}}", newNode.toJson());
+
+  }
+
   
   /**
    * someField = someField
@@ -262,9 +285,6 @@ public class PwsNodeTranslationTest extends TestCase {
     assertEquals("{\"someField\":\"someValue\"}", dataNode.toJson());
 
     //Tests:
-    // "someField:complicate.whatever"."someField:complicate.another"[3] = "someField2:complicate2.whatever2"."someField2:complicate.another2"[3]
-    // "someField:comp&quot;lic&amp;ate.whatever"."someField:complicate.another"[3] = "someField2:complicate2.whatever2"."someField2:complicate.another2"[3]
-    // someField.another[@lang='en'] = someField2.another2[@lang='fr']
     // someField.another[@lang.something='en'] = someField2.another2[@lang.whatever='fr']
     // someField.another[@lang.something='en'].yo = someField2.another2[@lang.whatever='fr'].hey
     // someField.another[@lang.something='en'].there = someField2.another2[@lang.whatever='fr'].where

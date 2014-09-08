@@ -77,7 +77,7 @@ public class PwsOperation {
           String[] operationParts = PersonWsServerUtils.splitTrimQuoted(workingOperationString, "=");
           
           if (operationParts.length > 2) {
-            throw new RuntimeException("Assignments cannot have more than one equals sign! " + operationParts.length);
+            throw new RuntimeException("Assignments cannot have more than one equals sign! " + operationParts.length + ", '" + operationString + "'" );
           }
           
           pwsOperation.pwsOperationEnum = PwsOperationEnum.assign;
