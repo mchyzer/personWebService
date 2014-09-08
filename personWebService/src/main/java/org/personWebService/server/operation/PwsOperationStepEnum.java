@@ -16,6 +16,11 @@ public enum PwsOperationStepEnum {
   traverseArray,
   
   /**
+   * traverse array by selector
+   */
+  traverseArrayBySelector,
+  
+  /**
    * simple traverse field
    */
   traverseField;

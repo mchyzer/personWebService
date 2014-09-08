@@ -72,9 +72,9 @@ public class PwsOperation {
         String workingOperationString = StringUtils.trimToEmpty(operationString);
         
         //see if it is an assignment
-        if (PersonWsServerUtils.containsQuoted(workingOperationString, "=")) {
+        if (PersonWsServerUtils.containsQuotedBracketed(workingOperationString, "=")) {
           
-          String[] operationParts = PersonWsServerUtils.splitTrimQuoted(workingOperationString, "=");
+          String[] operationParts = PersonWsServerUtils.splitTrimQuotedBracketed(workingOperationString, "=");
           
           if (operationParts.length > 2) {
             throw new RuntimeException("Assignments cannot have more than one equals sign! " + operationParts.length + ", '" + operationString + "'" );

@@ -37,7 +37,7 @@ public class PwsNodeTranslationTest extends TestCase {
    * @param args
    */
   public static void main(String[] args) {
-    TestRunner.run(new PwsNodeTranslationTest("testTranslateArrayScalarAssignmentQuotedEqualsFields"));
+    TestRunner.run(new PwsNodeTranslationTest("testTranslateAttributeValueSelectorObject"));
     //TestRunner.run(PwsNodeTranslationTest.class);
   }
 
@@ -256,10 +256,10 @@ public class PwsNodeTranslationTest extends TestCase {
     System.out.println(newNode.toJson());
     
     assertEquals("theVal", dataNode.retrieveField("someField2").retrieveField("another2").retrieveArrayItemByAttributeValue("lang", "fr").retrieveField("aField2").getString());
-    assertEquals("theVal", newNode.retrieveField("someField").retrieveField("another").retrieveField("aField2").getString());
+    assertEquals("theVal", newNode.retrieveField("someField").retrieveField("another").retrieveArrayItemByAttributeValue("lang", "fr").retrieveField("aField2").getString());
 
-    assertEquals("{\"some\\\"Field2:complic[ate2.wha=tever2\":{\"some\\\"Field2:co[mplic=ate.another2\":[\"a\",\"b\",\"c\",\"d\",\"e\"]}}", dataNode.toJson());
-    assertEquals("{\"some\\\"Field:compl[icate.whate=ver\":{\"some\\\"Field:complic[ate.an=other\":[null,null,\"d\"]}}", newNode.toJson());
+    assertEquals("{\"someField2\":{\"another2\":[{\"lang\":\"fr\",\"aField2\":\"theVal\"},{\"lang\":\"en\",\"aField2\":\"theVal2\"}]}}", dataNode.toJson());
+    assertEquals("{\"someField\":{\"another\":{\"lang\":\"fr\",\"aField2\":\"theVal\"}}}", newNode.toJson());
 
   }
 

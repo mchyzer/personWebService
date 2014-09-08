@@ -12462,7 +12462,7 @@ public class PersonWsServerUtils {
       return splitTrim(input, splitOn);
     }
     
-    List<Integer> indices = indexOfsQuoted(input, splitOn);
+    List<Integer> indices = indexOfsQuotedBracketed(input, splitOn);
     
     if (indices.size() == 0) {
       return new String[]{input.trim()};
@@ -12529,6 +12529,31 @@ public class PersonWsServerUtils {
   }
   
   /**
+   * see if a string contains a substring, but ignore things that are quoted (single or double), or bracketed
+   * @param input
+   * @param substring
+   * @return true if contains and false if not
+   */
+  public static boolean containsQuotedBracketed(String input, String substring) {
+    List<Integer> indices = indexOfsQuotedBracketed(input, substring);
+    return length(indices) > 0;
+  }
+
+  /**
+   * find the first index of a substring but ignore quoted and bracketed strings
+   * @param input
+   * @param substring
+   * @return the first index or -1 if not there
+   */
+  public static int indexOfQuotedBracketed(String input, String substring) {
+    List<Integer> indices = indexOfsQuotedBracketed(input, substring);
+    if (length(indices) == 0) {
+      return -1;
+    }
+    return indices.get(0);
+  }
+  
+  /**
    * find the last index of a substring but ignore quoted strings
    * @param input
    * @param substring
@@ -12543,12 +12568,25 @@ public class PersonWsServerUtils {
   }
   
   /**
+   * find the last index of a substring but ignore quoted strings and bracketed strings
+   * @param input
+   * @param substring
+   * @return the last index or -1 if not there
+   */
+  public static int lastIndexOfQuotedBracketed(String input, String substring) {
+    List<Integer> indices = indexOfsQuotedBracketed(input, substring);
+    if (length(indices) == 0) {
+      return -1;
+    }
+    return indices.get(indices.size()-1);
+  }
+  
+  /**
    * <pre>
    * get the indices where the substring occurs (dont worry about overlaps), and ignore quoted strings
    * if the input is ab..cd..ef
    * and the substring is ..
    * then return 2,6
-
    * if the input is ab..c"e..\" '.."d..ef
    * and the substring is ..
    * then return 2,17
@@ -12620,6 +12658,140 @@ public class PersonWsServerUtils {
       }
       //if we are in single quotes or double quotes, ignore checking for 
       if (inSingleQuotes || inDoubleQuotes) {
+        continue;
+      }
+      //lets see if we found the string
+      //lets see if there is even space
+      //string is ab..cd..ef
+      //length is 10
+      //index is 6
+      //splitOn is ..
+      //remaining length of string is length-index
+      int remainingLength = inputLength - i;
+      //we are done
+      if (remainingLength < substring.length()) {
+        break;
+      }
+      //see if equals
+      for (int splitOnIndex = 0; splitOnIndex < substring.length(); splitOnIndex++) {
+        if (input.charAt(i+splitOnIndex) != substring.charAt(splitOnIndex)) {
+          continue OUTER;
+        }
+      }
+      //the string was found!
+      //keep track that we found it
+      indices.add(i);
+      //move the pointer forward
+      i += substring.length()-1;
+    }
+    
+    //now we have the indices
+    return indices;
+  }
+  
+  /**
+   * <pre>
+   * get the indices where the substring occurs (dont worry about overlaps), and ignore quoted strings, ignore bracketed strings.
+   * inside bracketed strings, ignore quoted string.
+   * if the input is ab..c[rf..yh]d..ef
+   * and the substring is ..
+   * then return 2,14
+   * if the input is ab..c"e..\" '.."d..ef
+   * and the substring is ..
+   * then return 2,17
+   * if the input is ab..c"e..\" '.."d["re..][]..rf"]..ef
+   * and the substring is ..
+   * then return 2,32
+   * 
+   * </pre>
+   * @param input
+   * @param substring
+   * @return the list of indices
+   */
+  public static List<Integer> indexOfsQuotedBracketed(String input, String substring) {
+    
+    if (input == null) {
+      return null;
+    }
+
+    // this is just too confusing, dont allow
+    if (substring.contains("\"") || substring.contains("'") || substring.contains("[") || substring.contains("]")) {
+      throw new RuntimeException("splitOn cannot contain single or double quotes or brackets: '" + substring + "'");
+    }
+
+    //ok, we have quotes...  lets get the indices
+    List<Integer> indices = new ArrayList<Integer>();
+    
+    int inputLength = input.length();
+    
+    boolean inBrackets = false;
+    boolean inSingleQuotes = false;
+    boolean inDoubleQuotes = false;
+    
+    OUTER:
+    for (int i=0;i<inputLength;i++) {
+      char curChar = input.charAt(i);
+      boolean isSingleQuote = curChar == '\'';
+      boolean isDoubleQuote = curChar == '\"';
+      boolean isOpenBracket = curChar == '[';
+      boolean isCloseBracket = curChar == ']';
+      boolean isSlash = curChar == '\\';
+      
+      //if its a single quote, and you are not in quotes, then you are now in single quotes
+      if (isSingleQuote && !inSingleQuotes && !inDoubleQuotes) {
+        inSingleQuotes = true;
+        continue;
+      }
+      //if its a double quote, and you are not in quotes, then you are now in double quotes
+      if (isDoubleQuote && !inSingleQuotes && !inDoubleQuotes) {
+        inDoubleQuotes = true;
+        continue;
+      }
+      //if its an open bracket, and you are not in brackets, then you are now in brackets
+      if (isOpenBracket && !inSingleQuotes && !inDoubleQuotes) {
+        inBrackets = true;
+        continue;
+      }
+      //if its a single quote, and you are in double quotes, then ignore
+      if (isSingleQuote && inDoubleQuotes) {
+        continue;
+      }
+      //if its a double quote, and you are in single quotes, then ignore
+      if (isDoubleQuote && inSingleQuotes) {
+        continue;
+      }
+      //brackets dont count in quotes
+      if ((isOpenBracket || isCloseBracket) && (inSingleQuotes || inDoubleQuotes)) {
+        continue;
+      }
+      //if its a single quote, and we are in single quotes, then we arent in single quotes anymore
+      if (isSingleQuote && inSingleQuotes) {
+        inSingleQuotes = false;
+        continue;
+      }
+      //if its a double quote, and we are in double quotes, then we arent in double quotes anymore
+      if (isDoubleQuote && inDoubleQuotes) {
+        inDoubleQuotes = false;
+        continue;
+      }
+      //if its a close bracket and in brackets, then we arent in brackets anymore
+      if (isCloseBracket && inBrackets) {
+        inBrackets = false;
+        continue;
+      }
+      //if its a slash and we are in quotes, then ignore the next char
+      if (isSlash && (inDoubleQuotes || inSingleQuotes)) {
+
+        //not sure why this would happen
+        if (i == inputLength-1) {
+          break;
+        }
+        //we are processing the escaped char
+        i++;
+        continue;
+      }
+      //if we are in single quotes or double quotes or brackets, ignore checking for 
+      if (inSingleQuotes || inDoubleQuotes || inBrackets) {
         continue;
       }
       //lets see if we found the string

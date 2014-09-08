@@ -22,6 +22,55 @@ public class PwsOperationStep {
   private static final Log LOG = PersonWsServerUtils.getLog(PwsOperationStep.class);
 
   /**
+   * arraySelector e.g. field.anotherField
+   */
+  private String arraySelector = null;
+
+  /**
+   * arraySelector e.g. field.anotherField
+   * @return the arraySelector
+   */
+  public String getArraySelector() {
+    return this.arraySelector;
+  }
+  
+  /**
+   * arraySelector e.g. field.anotherField
+   * @param arraySelector1 the arraySelector to set
+   */
+  public void setArraySelector(String arraySelector1) {
+    this.arraySelector = arraySelector1;
+  }
+
+  /**
+   * should be a Long, Double, Boolean, or String, value we are looking for in a
+   * selector attribute
+   */
+  private Object arraySelectorAttributeValue;
+  
+  
+  
+  
+  /**
+   * should be a Long, Double, Boolean, or String, value we are looking for in a
+   * selector attribute
+   * @return the arraySelectorAttributeValue
+   */
+  public Object getArraySelectorAttributeValue() {
+    return this.arraySelectorAttributeValue;
+  }
+
+  
+  /**
+   * should be a Long, Double, Boolean, or String, value we are looking for in a
+   * selector attribute
+   * @param arraySelectorAttributeValue1 the arraySelectorAttributeValue to set
+   */
+  public void setArraySelectorAttributeValue(Object arraySelectorAttributeValue1) {
+    this.arraySelectorAttributeValue = arraySelectorAttributeValue1;
+  }
+
+  /**
    * 
    * @see java.lang.Object#toString()
    */
@@ -62,12 +111,28 @@ public class PwsOperationStep {
       if (rightBracketIndex > -1) {
         
         fieldName = operationExpression.substring(0, leftBracketIndex);
-        String indexString = operationExpression.substring(leftBracketIndex+1, rightBracketIndex);
-        int index = PersonWsServerUtils.intValue(indexString);
+        String indexString = operationExpression.substring(leftBracketIndex+1, rightBracketIndex).trim();
 
-        pwsOperationStep.setArrayIndex(index);
-        pwsOperationStep.setPwsOperationStepEnum(PwsOperationStepEnum.traverseArray);
-
+        if (indexString.startsWith("@")) {
+          //something like @"something"."something"='something'
+          pwsOperationStep.setPwsOperationStepEnum(PwsOperationStepEnum.traverseArrayBySelector);
+          //take off the @
+          indexString = indexString.substring(1);
+          String[] equalsParts = PersonWsServerUtils.splitTrimQuoted(indexString, "=");
+          if (PersonWsServerUtils.length(equalsParts) != 2) {
+            throw new RuntimeException("Cant find one and only one unquoted equals sign: " + PersonWsServerUtils.length(equalsParts)
+                + ", '@" + indexString + "'");
+          }
+          String leftSide = equalsParts[0];
+          String rightSide = equalsParts[1];
+          
+          if (leftSide)
+        } else {
+          int index = PersonWsServerUtils.intValue(indexString);
+  
+          pwsOperationStep.setArrayIndex(index);
+          pwsOperationStep.setPwsOperationStepEnum(PwsOperationStepEnum.traverseArray);
+        }
       } else  {
         throw new RuntimeException("Why doesnt matcher match??? '" + operationExpression + "'");
       }
