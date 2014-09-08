@@ -56,21 +56,20 @@ public class PwsOperationStep {
 
     int leftBracketIndex = PersonWsServerUtils.lastIndexOfQuoted(operationExpression,"[");
     if (leftBracketIndex > -1) {
-    
       int rightBracketIndex = PersonWsServerUtils.lastIndexOfQuoted(operationExpression,"]");
-        
+
       if (rightBracketIndex > -1) {
-          
+        
         fieldName = operationExpression.substring(0, leftBracketIndex);
         String indexString = operationExpression.substring(leftBracketIndex+1, rightBracketIndex);
-          int index = PersonWsServerUtils.intValue(indexString);
+        int index = PersonWsServerUtils.intValue(indexString);
 
-          pwsOperationStep.setArrayIndex(index);
-          pwsOperationStep.setPwsOperationStepEnum(PwsOperationStepEnum.traverseArray);
+        pwsOperationStep.setArrayIndex(index);
+        pwsOperationStep.setPwsOperationStepEnum(PwsOperationStepEnum.traverseArray);
 
-        } else  {
-          throw new RuntimeException("Why doesnt matcher match??? '" + operationExpression + "'");
-        }
+      } else  {
+        throw new RuntimeException("Why doesnt matcher match??? '" + operationExpression + "'");
+      }
       
     } else {
     
@@ -82,8 +81,9 @@ public class PwsOperationStep {
     fieldName = fieldName.trim();
     
     fieldName = PersonWsServerUtils.unquoteString(fieldName);
-    pwsOperationStep.setFieldName(fieldName);
     
+    pwsOperationStep.setFieldName(fieldName);
+
     if (LOG.isDebugEnabled()) {
       LOG.debug("Create Step: fromFieldName: " + fromFieldName + ", expression: " + operationExpression + ", step: " + pwsOperationStep.toString() );
     }
