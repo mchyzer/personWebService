@@ -12432,6 +12432,45 @@ public class PersonWsServerUtils {
   }
 
   /**
+   * see if a string contains a substring, but ignore things that are quoted (single or double)
+   * @param input
+   * @param substring
+   * @return true if contains and false if not
+   */
+  public static boolean containsQuoted(String input, String substring) {
+    List<Integer> indices = indexOfsQuoted(input, substring);
+    return length(indices) > 0;
+  }
+
+  /**
+   * find the first index of a substring but ignore quoted strings
+   * @param input
+   * @param substring
+   * @return the first index or -1 if not there
+   */
+  public static int indexOfQuoted(String input, String substring) {
+    List<Integer> indices = indexOfsQuoted(input, substring);
+    if (length(indices) == 0) {
+      return -1;
+    }
+    return indices.get(0);
+  }
+  
+  /**
+   * find the last index of a substring but ignore quoted strings
+   * @param input
+   * @param substring
+   * @return the last index or -1 if not there
+   */
+  public static int lastIndexOfQuoted(String input, String substring) {
+    List<Integer> indices = indexOfsQuoted(input, substring);
+    if (length(indices) == 0) {
+      return -1;
+    }
+    return indices.get(indices.size()-1);
+  }
+  
+  /**
    * <pre>
    * get the indices where the substring occurs (dont worry about overlaps), and ignore quoted strings
    * if the input is ab..cd..ef

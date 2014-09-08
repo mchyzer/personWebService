@@ -23,6 +23,46 @@ import org.personWebService.server.util.PersonWsServerUtils;
 public class PwsNode {
 
   /**
+   * 
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString() {
+    StringBuilder result = new StringBuilder();
+    result.append("{");
+    result.append("fromFieldName: ").append(this.fromFieldName);
+    result.append(", nodeType: ").append(this.pwsNodeType.name());
+    if (this.arrayType) {
+      result.append(", arrayType: ").append(this.arrayType);
+      result.append(", arraySize: ").append(PersonWsServerUtils.length(this.array));
+    } else {
+      if (this.pwsNodeType != null) {
+        switch(this.pwsNodeType) {
+          case bool:
+            result.append(", bool: ").append(this.bool);
+            break;
+          case floating:
+            result.append(", floating: ").append(this.floating);
+            break;
+          case integer:
+            result.append(", integer: ").append(this.integer);
+            break;
+          case object:
+            result.append(", objectFieldSize: ").append(PersonWsServerUtils.length(this.object));
+            break;
+          case string:
+            result.append(", string: '").append(PersonWsServerUtils.abbreviate(this.string, 20)).append("'");
+            break;
+          default:
+            throw new RuntimeException("Not expecting type: " + this.pwsNodeType);  
+        }
+      }
+    }
+    result.append("}");
+    return result.toString();
+  }
+  
+  /**
    * field name we are coming from (for debugging reasons)
    */
   private String fromFieldName;
