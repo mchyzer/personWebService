@@ -6,10 +6,9 @@ package org.personWebService.server.operation;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
 import org.personWebService.server.cache.PersonWsCache;
 import org.personWebService.server.util.PersonWsServerUtils;
 
@@ -19,19 +18,29 @@ import org.personWebService.server.util.PersonWsServerUtils;
  */
 public class PwsOperationStep {
 
+  /** logger */
+  private static final Log LOG = PersonWsServerUtils.getLog(PwsOperationStep.class);
+
   /**
-   * <pre>
-   * array index pattern
-   * ^\s*([^\[]+)\s*\[\s*(\d+)\s*\]\s*$
-   * ^\s*      start of string followed by optional whitespace
-   * ([^\[]+)  name of the array (captured) is a bunch of stuff not an open bracket
-   * \s*\[     optional whitespace then an open bracket
-   * \s*(\d+)  optional whitespace then some numbers (captured)
-   * \s*\]     optional whitespace then a close bracket
-   * \s*$      optional whitespace then end of string
-   * </pre>
+   * 
+   * @see java.lang.Object#toString()
    */
-  private static Pattern arrayIndexPattern = Pattern.compile("^\\s*([^\\[]+)\\s*\\[\\s*(\\d+)\\s*\\]\\s*$");
+  @Override
+  public String toString() {
+    
+    StringBuilder result = new StringBuilder();
+    
+    result.append("{fieldName: ").append(this.fieldName)
+      .append(", step: ").append(this.pwsOperationStepEnum)
+      .append(", fromFieldName: ").append(this.fromFieldName);
+    
+    if (this.arrayIndex != -1) {
+      result.append(", arrayIndex: ").append(this.arrayIndex);
+    }
+    result.append("}");
+    return result.toString();
+    
+  }
   
   /**
    * create a pws operation step
@@ -44,16 +53,16 @@ public class PwsOperationStep {
     PwsOperationStep pwsOperationStep = new PwsOperationStep();
     pwsOperationStep.setFromFieldName(fromFieldName);
     String fieldName = null;
-    //TODO ignore quoted
-    int leftBracketIndex = operationExpression.lastIndexOf("[");
+
+    int leftBracketIndex = PersonWsServerUtils.lastIndexOfQuoted(operationExpression,"[");
     if (leftBracketIndex > -1) {
     
-        Matcher matcher = arrayIndexPattern.matcher(operationExpression);
+      int rightBracketIndex = PersonWsServerUtils.lastIndexOfQuoted(operationExpression,"]");
         
-        if (matcher.matches()) {
+      if (rightBracketIndex > -1) {
           
-          fieldName = matcher.group(1);
-          String indexString = matcher.group(2);
+        fieldName = operationExpression.substring(0, leftBracketIndex);
+        String indexString = operationExpression.substring(leftBracketIndex+1, rightBracketIndex);
           int index = PersonWsServerUtils.intValue(indexString);
 
           pwsOperationStep.setArrayIndex(index);
@@ -69,13 +78,15 @@ public class PwsOperationStep {
       fieldName = operationExpression;
 
     }
+
+    fieldName = fieldName.trim();
     
-    if ((fieldName.startsWith("\"") && fieldName.endsWith("\""))
-        || (fieldName.startsWith("'") && fieldName.endsWith("'")) ){
-      fieldName = fieldName.substring(1, fieldName.length()-1);
-    }
+    fieldName = PersonWsServerUtils.unquoteString(fieldName);
     pwsOperationStep.setFieldName(fieldName);
     
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Create Step: fromFieldName: " + fromFieldName + ", expression: " + operationExpression + ", step: " + pwsOperationStep.toString() );
+    }
 
     return pwsOperationStep;
 
@@ -104,7 +115,7 @@ public class PwsOperationStep {
       //simple case, no dot, no nonsense
       if (!StringUtils.isBlank(expression)) {
 
-        if (!expression.contains(".")) {
+        if (!PersonWsServerUtils.containsQuoted(expression, ".")) {
           
           PwsOperationStep pwsOperationStep = PwsOperationStep.create(fromFieldName, expression);
           pwsOperationSteps.add(pwsOperationStep);
@@ -161,7 +172,7 @@ public class PwsOperationStep {
   /**
    * array index
    */
-  private int arrayIndex;
+  private int arrayIndex = -1;
   
   /**
    * array index

@@ -72,7 +72,7 @@ public class PwsOperation {
         String workingOperationString = StringUtils.trimToEmpty(operationString);
         
         //see if it is an assignment
-        if (workingOperationString.contains("=")) {
+        if (PersonWsServerUtils.containsQuoted(workingOperationString, "=")) {
           
           String[] operationParts = PersonWsServerUtils.splitTrimQuoted(workingOperationString, "=");
           

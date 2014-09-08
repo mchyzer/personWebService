@@ -12432,6 +12432,45 @@ public class PersonWsServerUtils {
   }
 
   /**
+   * see if a string contains a substring, but ignore things that are quoted (single or double)
+   * @param input
+   * @param substring
+   * @return true if contains and false if not
+   */
+  public static boolean containsQuoted(String input, String substring) {
+    List<Integer> indices = indexOfsQuoted(input, substring);
+    return length(indices) > 0;
+  }
+
+  /**
+   * find the first index of a substring but ignore quoted strings
+   * @param input
+   * @param substring
+   * @return the first index or -1 if not there
+   */
+  public static int indexOfQuoted(String input, String substring) {
+    List<Integer> indices = indexOfsQuoted(input, substring);
+    if (length(indices) == 0) {
+      return -1;
+    }
+    return indices.get(0);
+  }
+  
+  /**
+   * find the last index of a substring but ignore quoted strings
+   * @param input
+   * @param substring
+   * @return the last index or -1 if not there
+   */
+  public static int lastIndexOfQuoted(String input, String substring) {
+    List<Integer> indices = indexOfsQuoted(input, substring);
+    if (length(indices) == 0) {
+      return -1;
+    }
+    return indices.get(indices.size()-1);
+  }
+  
+  /**
    * <pre>
    * get the indices where the substring occurs (dont worry about overlaps), and ignore quoted strings
    * if the input is ab..cd..ef
@@ -12602,4 +12641,68 @@ public class PersonWsServerUtils {
     //all good
   }
 
+  /**
+   * if this string is surrounded by double or single quotes, then take the quotes
+   * off and unescape the quotes inside.  Note, the things that will be changed inside are
+   * \\ will go to \, and \" will go to " or a double quoted string, or \' will go to '
+   * for a single quoted string
+   * @param input
+   * @return the unquoted string
+   */
+  public static String unquoteString(String input) {
+    
+    if (input == null) {
+      return null;
+    }
+    
+    if ((input.startsWith("\"") && input.endsWith("\""))
+        || (input.startsWith("'") && input.endsWith("'")) ){
+    
+      StringBuilder result = new StringBuilder();
+
+      //single or double
+      char quoteChar = input.charAt(0);
+
+      for (int i=0; i<input.length(); i++) {
+
+        //strip off the start and end
+        if (i==0 || i==input.length()-1) {
+          continue;
+        }
+
+        char curChar = input.charAt(i);
+        
+        if (curChar == '\\') {
+          
+          if (i == input.length()-2) {
+            throw new RuntimeException("Why is there a slash right before the last quote???? '" + input + "'");
+          }
+          
+          char nextChar = input.charAt(i+1);
+          
+          if (nextChar == '\\') {
+            result.append('\\');
+            i++;
+            continue;
+          }
+          
+          if (nextChar == quoteChar) {
+            result.append(quoteChar);
+            i++;
+            continue;
+          }
+          
+          throw new RuntimeException("Should only be escaping slash \\ or quote char: " + quoteChar + ", '" + nextChar + "'");
+          
+        }
+        result.append(curChar);
+        
+      }
+      
+      return result.toString();
+    }
+    
+    return input;
+  }
+  
 }

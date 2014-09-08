@@ -37,7 +37,7 @@ public class PwsNodeTranslationTest extends TestCase {
    * @param args
    */
   public static void main(String[] args) {
-    TestRunner.run(new PwsNodeTranslationTest("testTranslateArrayScalarAssignmentQuotedFields"));
+    TestRunner.run(new PwsNodeTranslationTest("testTranslateArrayScalarAssignmentQuotedEqualsFields"));
     //TestRunner.run(PwsNodeTranslationTest.class);
   }
 
@@ -216,7 +216,31 @@ public class PwsNodeTranslationTest extends TestCase {
 
   }
 
+  /**
+   * "some\"Field:compl[icate.whate=ver"."some\"Field:complic[ate.an=other"[2] = "some\"Field2:complic[ate2.wha=tever2"."some\"Field2:co[mplic=ate.another2"[3]
+   */
+  public void testTranslateArrayScalarAssignmentQuotedEqualsFields() {
 
+    //{"someInteger":45,"someFloat":34.567,"someFloatInt":34,"someBoolTrue":true,"someBoolFalse":false,"someString":"some string","sub":{"subInteger":37,"subString":"sub string"},"arraySub":[{"subInteger":37,"subString":"sub string"},{"subInteger":37,"subString":"sub string"}],"arrayInteger":[28,17,9],"arrayString":["abc","123","true"]}
+    PwsNode dataNode = PwsNode.fromJson("{\"some\\\"Field2:complic[ate2.wha=tever2\":{\"some\\\"Field2:co[mplic=ate.another2\":[\"a\",\"b\",\"c\",\"d\",\"e\"]}}");
+
+    PwsNode newNode = new PwsNode();
+    newNode.setPwsNodeType(PwsNodeType.object);
+
+    PwsNodeTranslation.assign(newNode, dataNode, "\"some\\\"Field:compl[icate.whate=ver\".\"some\\\"Field:complic[ate.an=other\"[2] "
+        + "= \"some\\\"Field2:complic[ate2.wha=tever2\".\"some\\\"Field2:co[mplic=ate.another2\"[3]");
+
+    System.out.println(newNode.toJson());
+    
+    assertEquals("d", dataNode.retrieveField("some\\\"Field2:complic[ate2.wha=tever2").retrieveField("some\\\"Field:complic[ate.an=other").retrieveArrayItem(3).getString());
+    assertEquals("d", newNode.retrieveField("some\\\"Field:compl[icate.whate=ver").retrieveField("some\\\"Field:complic[ate.an=other").retrieveArrayItem(2).getString());
+
+    assertEquals("{\"some\\\"Field2:complic[ate2.wha=tever2\":{\"some\\\"Field2:co[mplic=ate.another2\":[\"a\",\"b\",\"c\",\"d\",\"e\"]}}", dataNode.toJson());
+    assertEquals("{\"some\\\"Field:compl[icate.whate=ver\":{\"some\\\"Field:complic[ate.an=other\":[null,null,\"d\"]}}", newNode.toJson());
+
+  }
+
+  
   /**
    * someField = someField
    */
@@ -238,7 +262,6 @@ public class PwsNodeTranslationTest extends TestCase {
     assertEquals("{\"someField\":\"someValue\"}", dataNode.toJson());
 
     //Tests:
-    // "someField:compl[icate.whatever"."someField:complic[ate.another"[2] = "someField2:complic[ate2.whatever2"."someField2:co[mplicate.another2"[3]
     // "someField:complicate.whatever"."someField:complicate.another"[3] = "someField2:complicate2.whatever2"."someField2:complicate.another2"[3]
     // "someField:comp&quot;lic&amp;ate.whatever"."someField:complicate.another"[3] = "someField2:complicate2.whatever2"."someField2:complicate.another2"[3]
     // someField.another[@lang='en'] = someField2.another2[@lang='fr']

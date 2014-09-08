@@ -32,7 +32,7 @@ public class PwsNodeTranslation {
 
         List<PwsOperationStep> sourcePwsOperationSteps = pwsOperation.getSourcePwsOperationSteps();
         PwsNodeEvaluationResult pwsNodeEvaluationResult = PwsNodeEvaluation.evaluate(fromNode, sourcePwsOperationSteps, false);
-        
+
         if (pwsNodeEvaluationResult.getPwsNode() == null) {
           pwsNodeAssignmentResult.setFoundSourceLocation(false);
         } else {
@@ -50,7 +50,6 @@ public class PwsNodeTranslation {
           assignNode(destinationNode, sourceNode);
           
         }
-
          
          
         break;
