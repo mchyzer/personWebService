@@ -56,6 +56,7 @@ public class PwsOperationStep {
 
     int leftBracketIndex = PersonWsServerUtils.lastIndexOfQuoted(operationExpression,"[");
     if (leftBracketIndex > -1) {
+      
       int rightBracketIndex = PersonWsServerUtils.lastIndexOfQuoted(operationExpression,"]");
 
       if (rightBracketIndex > -1) {
@@ -80,8 +81,12 @@ public class PwsOperationStep {
 
     fieldName = fieldName.trim();
     
-    fieldName = PersonWsServerUtils.unquoteString(fieldName);
+    fieldName = fieldName.trim();
     
+    if ((fieldName.startsWith("\"") && fieldName.endsWith("\""))
+        || (fieldName.startsWith("'") && fieldName.endsWith("'")) ){
+      fieldName = fieldName.substring(1, fieldName.length()-1);
+    }
     pwsOperationStep.setFieldName(fieldName);
 
     if (LOG.isDebugEnabled()) {
