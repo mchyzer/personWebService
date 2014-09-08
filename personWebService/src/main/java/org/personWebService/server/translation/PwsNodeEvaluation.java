@@ -47,6 +47,10 @@ public class PwsNodeEvaluation {
       
       switch (pwsOperationStep.getPwsOperationStepEnum()) {
         
+        case traverseArrayBySelector:
+          
+          fix this
+          
         case traverseArray:
   
           result = currentNode.retrieveField(pwsOperationStep.getFieldName());
