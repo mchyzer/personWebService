@@ -89,7 +89,7 @@ public class PersonWsServerUtilsTest extends TestCase {
    */
   public void testIndexOfsQuoted() {
 
-    //* if the input is ab..cd..ef
+    //* if the input is: ab..cd..ef
     //* and the substring is ..
     //* then return 2,6
     PersonWsServerUtils.assertEqualsList(PersonWsServerUtils.toList(2,6), 
