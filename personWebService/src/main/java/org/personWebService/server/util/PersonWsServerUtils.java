@@ -80,6 +80,7 @@ import net.sf.json.util.PropertyFilter;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlContext;
 import org.apache.commons.jexl2.JexlEngine;
@@ -116,6 +117,54 @@ import edu.internet2.middleware.grouperClient.util.ExpirableCache;
  */
 @SuppressWarnings("unchecked")
 public class PersonWsServerUtils {
+
+  /**
+   * create one set of jexlEngine instances (one per type of setting) so we can cache expressions
+   */
+  private final static Map<MultiKey, JexlEngine> jexlEngines = new HashMap<MultiKey, JexlEngine>();
+  
+  /**
+   * if the jexl engine instances are all initialized completely
+   */
+  private static boolean jexlEnginesInitialized = false;
+  
+  /**
+   * initialize the instances
+   */
+  static {
+    {
+      Boolean silent = true;
+      Boolean lenient = true;
+      final JexlEngine jexlEngine = new JexlEngine();
+      jexlEngine.setSilent(silent);
+      jexlEngine.setLenient(lenient);
+      jexlEngines.put(new MultiKey(silent, lenient), jexlEngine);
+    }
+    {
+      Boolean silent = false;
+      Boolean lenient = true;
+      final JexlEngine jexlEngine = new JexlEngine();
+      jexlEngine.setSilent(silent);
+      jexlEngine.setLenient(lenient);
+      jexlEngines.put(new MultiKey(silent, lenient), jexlEngine);
+    }
+    {
+      Boolean silent = true;
+      Boolean lenient = false;
+      final JexlEngine jexlEngine = new JexlEngine();
+      jexlEngine.setSilent(silent);
+      jexlEngine.setLenient(lenient);
+      jexlEngines.put(new MultiKey(silent, lenient), jexlEngine);
+    }
+    {
+      Boolean silent = false;
+      Boolean lenient = false;
+      final JexlEngine jexlEngine = new JexlEngine();
+      jexlEngine.setSilent(silent);
+      jexlEngine.setLenient(lenient);
+      jexlEngines.put(new MultiKey(silent, lenient), jexlEngine);
+    }
+  }
 
   /**
    * get a logger, and auto-create log dirs if havent done yet
@@ -8873,6 +8922,22 @@ public class PersonWsServerUtils {
   @SuppressWarnings("unchecked")
   public static String substituteExpressionLanguage(String stringToParse, 
       Map<String, Object> variableMap, boolean allowStaticClasses, boolean silent, boolean lenient) {
+
+    if (!jexlEnginesInitialized) {
+      synchronized (PersonWsServerUtils.class) {
+        if (!jexlEnginesInitialized) {
+          
+          int cacheSize = PersonWebServiceServerConfig.retrieveConfig().propertyValueInt("jexl.cacheSize", 10000);
+          for (JexlEngine jexlEngine : jexlEngines.values()) {
+            jexlEngine.setCache(cacheSize);
+          }
+          
+          jexlEnginesInitialized = true;
+        }
+      }
+    }
+
+    
     if (isBlank(stringToParse)) {
       return stringToParse;
     }
@@ -8880,32 +8945,32 @@ public class PersonWsServerUtils {
     Exception exception = null;
     try {
       JexlContext jc = allowStaticClasses ? new JexlCustomMapContext() : new MapContext();
-        
-      
-      
+
+
+
       int index = 0;
-      
+
       for (String key: variableMap.keySet()) {
         jc.set(key, variableMap.get(key));
       }
-      
+
       //allow utility methods
       jc.set("personWsServerUtils", new PwsServerUtilsElSafe());
       //if you add another one here, add it in the logs below
-      
+
       // matching ${ exp }   (non-greedy)
       Pattern pattern = Pattern.compile("\\$\\{(.*?)\\}");
       Matcher matcher = pattern.matcher(stringToParse);
-      
+
       StringBuilder result = new StringBuilder();
-  
+
       //loop through and find each script
       while(matcher.find()) {
         result.append(stringToParse.substring(index, matcher.start()));
-        
+
         //here is the script inside the curlies
         String script = matcher.group(1);
-        
+
         index = matcher.end();
 
         if (script.contains("{")) {
@@ -8928,17 +8993,12 @@ public class PersonWsServerUtils {
             }
           }
         }
-        
-        
-        JexlEngine jexlEngine = new JexlEngine();
-        jexlEngine.setSilent(silent);
-        jexlEngine.setLenient(lenient);
 
-        Expression e = jexlEngine.createExpression(script);
+        Expression e = jexlEngines.get(new MultiKey(silent, lenient)).createExpression(script);
 
         //this is the result of the evaluation
         Object o = null;
-        
+
         try {
           o = e.evaluate(jc);
         } catch (JexlException je) {
@@ -8958,24 +9018,29 @@ public class PersonWsServerUtils {
           }
           throw je;
         }
-          
+
+        //we dont want "null" in the result I think...
+        if (o == null && lenient) {
+          o = "";
+        }
+        
         if (o == null) {
           LOG.warn("expression returned null: " + script + ", in pattern: '" + stringToParse + "', available variables are: "
               + toStringForLog(variableMap.keySet()));
         }
-        
+
         if (o instanceof RuntimeException) {
           throw (RuntimeException)o;
         }
-        
+
         result.append(o);
-        
+
       }
-      
+
       result.append(stringToParse.substring(index, stringToParse.length()));
       overallResult = result.toString();
       return overallResult;
-      
+
     } catch (Exception e) {
       exception = e;
       if (e instanceof ExpressionLanguageMissingVariableException) {

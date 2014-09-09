@@ -33,6 +33,95 @@ public class PwsNode {
   private static final Log LOG = PersonWsServerUtils.getLog(PwsNode.class);
 
   /**
+   * type cast a node and assign to another node
+   * @param toNode
+   * @param fromNode
+   * @param typeCastClass
+   */
+  public static void typeCast(PwsNode toNode, PwsNode fromNode, Class<?> typeCastClass) {
+
+    Object value = fromNode.getValue();
+    
+    if (typeCastClass == Object.class) {
+      
+      if (PersonWsServerUtils.isBlank(value)) {
+        toNode.setPwsNodeType(PwsNodeType.object);
+        //TODO clear out object?
+      } else {
+        throw new RuntimeException("Cant type cast a non null scalar to an object");
+      }
+      
+    } else if (typeCastClass == String.class) {
+      
+      toNode.setPwsNodeType(PwsNodeType.string);
+      
+      if (value == null) {
+        toNode.setString(null);
+      } else {
+        toNode.setString(value.toString());
+      }
+      
+    } else if (typeCastClass == Long.class) {
+      
+      toNode.setPwsNodeType(PwsNodeType.integer);
+      
+      if (value == null) {
+        toNode.setInteger(null);
+      } else {
+        toNode.setInteger(PersonWsServerUtils.longObjectValue(value, true));
+      }
+      
+    } else if (typeCastClass == Double.class) {
+      
+      toNode.setPwsNodeType(PwsNodeType.floating);
+      
+      if (value == null) {
+        toNode.setFloating(null);
+      } else {
+        toNode.setFloating(PersonWsServerUtils.doubleObjectValue(value, true));
+      }
+
+    } else {
+      
+      throw new RuntimeException("Expecting type Object, Long, "
+          + "Double, Boolean, String, but was: " + typeCastClass.getName());
+      
+    }
+
+    
+  }
+  
+  /**
+   * get the value of the object
+   * @return the object
+   */
+  public Object getValue() {
+
+    if (this.isArrayType()) {
+      throw new RuntimeException("Not expecting array: " + this);
+    }
+    
+    switch(this.getPwsNodeType()) {
+      case bool:
+        return this.getBool();
+      case floating:
+        return this.getFloating();
+      case integer:
+        return this.getInteger();
+      case object:
+        if (PersonWsServerUtils.length(this.object) == 0) {
+          return null;
+        }
+        throw new RuntimeException("Not expecting non-empty object: " + this);
+      case string:
+        return this.getString();
+      default:
+        throw new RuntimeException("Not expecting node type: " + this.getPwsNodeType());
+    }
+    
+  }
+  
+  /**
    * see if a scalar node equals this value (massage the type)
    * @param expectedValue 
    * @return the result

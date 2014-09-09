@@ -11,6 +11,11 @@ package org.personWebService.server.operation;
 public enum PwsOperationStepEnum {
 
   /**
+   * expression language
+   */
+  expressionLanguage,
+  
+  /**
    * traverse array
    */
   traverseArray,

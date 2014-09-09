@@ -26,9 +26,28 @@ public class PwsOperationStep {
    */
   private String arraySelector;
   
+  /**
+   * string for this operation
+   */
+  private String operationString;
+
+  /**
+   * string for this operation
+   * @return the operationString
+   */
+  public String getOperationString() {
+    return this.operationString;
+  }
   
-  
-  
+  /**
+   * string for this operation
+   * @param operationString1 the operationString to set
+   */
+  public void setOperationString(String operationString1) {
+    this.operationString = operationString1;
+  }
+
+
   /**
    * array selector for debug
    * @return the arraySelector
@@ -101,6 +120,7 @@ public class PwsOperationStep {
     
     result.append("{fieldName: ").append(this.fieldName)
       .append(", step: ").append(this.pwsOperationStepEnum)
+      .append(", operationString: ").append(this.operationString)
       .append(", fromFieldName: ").append(this.fromFieldName);
     
     if (this.arrayIndex != -1) {
@@ -128,6 +148,7 @@ public class PwsOperationStep {
     List<PwsOperationStep> results = new ArrayList<PwsOperationStep>();
     
     PwsOperationStep pwsOperationStep = new PwsOperationStep();
+    pwsOperationStep.setOperationString(operationExpression);
     pwsOperationStep.setFromFieldName(fromFieldName);
     String fieldName = null;
 
@@ -273,18 +294,31 @@ public class PwsOperationStep {
       //simple case, no dot, no nonsense
       if (!StringUtils.isBlank(expression)) {
 
-        //lets traverse down
-        String[] expressionParts = PersonWsServerUtils.splitTrimQuotedBracketed(expression, ".");
-        PwsOperationStep previousStep = null;
-        for (String expressionPart : expressionParts) {
+        //lets see what kind of operation step this is
+        if (PersonWsServerUtils.containsQuoted(expression, "${")) {
+
+          //this is EL, just keep and evaluate at runtime.  The EL engine will parse the expressions
+          PwsOperationStep pwsOperationStep = new PwsOperationStep();
+          pwsOperationStep.setPwsOperationStepEnum(PwsOperationStepEnum.expressionLanguage);
+          pwsOperationStep.setOperationString(expression);
+          pwsOperationSteps.add(pwsOperationStep);
           
-          List<PwsOperationStep> pwsOperationSubSteps = PwsOperationStep.create(
-              previousStep == null ? 
-                  (StringUtils.isBlank(fromFieldName) ? null : fromFieldName) 
-                      : previousStep.getFieldName(), expressionPart);
-          pwsOperationSteps.addAll(pwsOperationSubSteps);
-          previousStep = pwsOperationSubSteps.get(pwsOperationSubSteps.size()-1);
+        } else {
+
+          //lets traverse down
+          String[] expressionParts = PersonWsServerUtils.splitTrimQuotedBracketed(expression, ".");
+          PwsOperationStep previousStep = null;
+          for (String expressionPart : expressionParts) {
+            
+            List<PwsOperationStep> pwsOperationSubSteps = PwsOperationStep.create(
+                previousStep == null ? 
+                    (StringUtils.isBlank(fromFieldName) ? null : fromFieldName) 
+                        : previousStep.getFieldName(), expressionPart);
+            pwsOperationSteps.addAll(pwsOperationSubSteps);
+            previousStep = pwsOperationSubSteps.get(pwsOperationSubSteps.size()-1);
+          }
         }
+        
         
       }
 

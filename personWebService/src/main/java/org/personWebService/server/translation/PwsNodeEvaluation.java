@@ -4,6 +4,7 @@
  */
 package org.personWebService.server.translation;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,19 @@ public class PwsNodeEvaluation {
       PwsNode result = null;
       
       switch (pwsOperationStep.getPwsOperationStepEnum()) {
+        
+        case expressionLanguage:
+          
+          String script = pwsOperationStep.getOperationString();
+          
+          Map<String, Object> variableMap = new HashMap<String, Object>();
+          variableMap.put("node", currentNode);
+          
+          String resultString = PersonWsServerUtils.substituteExpressionLanguage(script, variableMap, true, false, true);
+          
+          result = new PwsNode(PwsNodeType.string);
+          result.setString(resultString);
+          return result;
         
         case traverseArrayBySelector:
           

@@ -47,7 +47,7 @@ public class PwsNodeTranslation {
             pwsNodeAssignmentResult.setCreatedDestinationLocation(true);
           }
           
-          assignNode(destinationNode, sourceNode);
+          assignNode(destinationNode, sourceNode, pwsOperation.getTypeCastClass());
           
         }
          
@@ -68,9 +68,25 @@ public class PwsNodeTranslation {
    * assign (clone?) whats in the from node to the to node
    * @param toNode
    * @param fromNode
+   * @param typeCastClass 
    * @return true if changed type
    */
-  static boolean assignNode(PwsNode toNode, PwsNode fromNode) {
+  static boolean assignNode(PwsNode toNode, PwsNode fromNode, Class<?> typeCastClass) {
+
+    {
+      PwsNode copyFromNode = fromNode;
+      
+      if (typeCastClass != null) {
+        copyFromNode = new PwsNode();
+        
+        PwsNode.typeCast(copyFromNode, fromNode, typeCastClass);
+        
+      }
+      //copy back
+      fromNode = copyFromNode;
+    }
+    
+    
     boolean changedType = false;
     if (fromNode.getPwsNodeType() != toNode.getPwsNodeType()) {
       if (toNode.getPwsNodeType() != null) {
