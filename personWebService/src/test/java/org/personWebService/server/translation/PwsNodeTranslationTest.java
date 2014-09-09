@@ -252,11 +252,9 @@ public class PwsNodeTranslationTest extends TestCase {
     newNode.setPwsNodeType(PwsNodeType.object);
 
     PwsNodeTranslation.assign(newNode, dataNode, "someField.another = someField2.another2[@lang='fr']");
-
-    System.out.println(newNode.toJson());
     
     assertEquals("theVal", dataNode.retrieveField("someField2").retrieveField("another2").retrieveArrayItemByAttributeValue("lang", "fr").retrieveField("aField2").getString());
-    assertEquals("theVal", newNode.retrieveField("someField").retrieveField("another").retrieveArrayItemByAttributeValue("lang", "fr").retrieveField("aField2").getString());
+    assertEquals("theVal", newNode.retrieveField("someField").retrieveField("another").retrieveField("aField2").getString());
 
     assertEquals("{\"someField2\":{\"another2\":[{\"lang\":\"fr\",\"aField2\":\"theVal\"},{\"lang\":\"en\",\"aField2\":\"theVal2\"}]}}", dataNode.toJson());
     assertEquals("{\"someField\":{\"another\":{\"lang\":\"fr\",\"aField2\":\"theVal\"}}}", newNode.toJson());

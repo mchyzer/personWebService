@@ -13,6 +13,19 @@ import org.personWebService.server.beans.PwsNode;
 public class PwsNodeEvaluationResult {
 
   /**
+   * 
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString() {
+    StringBuilder result = new StringBuilder();
+    result.append("{foundNode: ").append(this.pwsNode != null)
+      .append(", createdNode: ").append(this.createdNode)
+      .append(", changedArrayType: ").append(this.changedArrayType).append("}");
+    return result.toString();
+  }
+  
+  /**
    * if changed array type
    */
   private boolean changedArrayType = false;

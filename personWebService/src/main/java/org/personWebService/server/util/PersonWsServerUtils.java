@@ -7730,6 +7730,19 @@ public class PersonWsServerUtils {
   }
 
   /**
+   * 
+   * @param object
+   * @param length
+   * @return abbreviate an object tostring
+   */
+  public static String abbreviate(Object object, int length) {
+    if (object == null) {
+      return null;
+    }
+    return abbreviate(toStringSafe(object), length);
+  }
+  
+  /**
    * <p>Abbreviates a String using ellipses. This will turn
    * "Now is the time for all good men" into "Now is the time for..."</p>
    *

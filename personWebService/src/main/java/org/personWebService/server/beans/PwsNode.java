@@ -15,6 +15,8 @@ import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
+import org.apache.commons.logging.Log;
 import org.personWebService.server.util.PersonWsServerUtils;
 
 
@@ -23,6 +25,186 @@ import org.personWebService.server.util.PersonWsServerUtils;
  */
 public class PwsNode {
 
+  /** logger */
+  private static final Log LOG = PersonWsServerUtils.getLog(PwsNode.class);
+
+  /**
+   * see if a scalar node equals this value (massage the type)
+   * @param expectedValue 
+   * @return the result
+   */
+  public boolean equalsScalar(Object expectedValue) {
+
+    if (this.getPwsNodeType() == null && expectedValue == null) {
+      return true;
+    }
+
+    if (this.getPwsNodeType() == null) {
+      throw new RuntimeException("Trying to test a scalar equality?  "
+          + "Should be initialized and not null node type! " 
+          + this);
+    }
+    
+    if (this.getPwsNodeType() == PwsNodeType.object) {
+      throw new RuntimeException("Trying to test a scalar equality?  Should be a scalar! " 
+          + this);
+    }
+
+    if (this.getPwsNodeType() == PwsNodeType.object) {
+      throw new RuntimeException("Trying to test a scalar equality?  Should be a scalar! " 
+          + this);
+    }
+
+    if (this.isArrayType()) {
+      throw new RuntimeException("Why would an attribute selector target be an array?  Should be a scalar! " 
+          + this);
+    }
+
+    //lets see if the value equals
+    switch(this.getPwsNodeType()) {
+
+      case bool:
+        
+        if (expectedValue == this.bool) {
+          return true;
+        }
+        {
+          //must be a boolean
+          Boolean expectedBoolean = null;
+          
+          if (expectedValue instanceof Boolean) {
+            expectedBoolean = (Boolean)expectedValue;
+          } else if (expectedValue instanceof String) {
+            expectedBoolean = PersonWsServerUtils.booleanObjectValue(expectedValue);
+          } else {
+            throw new RuntimeException("Expecting type of boolean or string, but was: " + expectedValue.getClass().getName() + ", " + expectedValue);
+          }
+  
+          if (expectedBoolean == null || this.bool == null) {
+            return false;
+          }
+          
+          return this.bool.equals(expectedBoolean);
+        }
+        
+      case floating:
+
+        if (expectedValue == this.floating) {
+          return true;
+        }
+
+        {
+          //must be a boolean
+          Double expectedDouble = null;
+          
+          if (expectedValue instanceof Long) {
+            expectedDouble = ((Long)expectedValue).doubleValue();
+          } else if (expectedValue instanceof Double) {
+            expectedDouble = (Double)expectedValue;
+          } else if (expectedValue instanceof String) {
+            expectedDouble = PersonWsServerUtils.doubleObjectValue(expectedValue, true);
+          } else {
+            throw new RuntimeException("Expecting type of double, long, or string, but was: " + expectedValue.getClass().getName() + ", " + expectedValue);
+          }
+  
+          if (expectedDouble == null || this.bool == null) {
+            return false;
+          }
+          return NumberUtils.compare(this.floating, expectedDouble) == 0;
+        }
+
+      case integer:
+
+        if (expectedValue == this.integer) {
+          return true;
+        }
+        if (this.integer == null || expectedValue == null) {
+          return false;
+        }
+
+        {
+          //must be a boolean
+          Long expectedLong = null;
+          
+          if (expectedValue instanceof Long) {
+            expectedLong = (Long)expectedValue;
+            return this.integer.equals(expectedLong);
+          }
+          
+          if (expectedValue instanceof Double) {
+            Double thisFloating = this.integer.doubleValue();
+            return NumberUtils.compare(thisFloating, (Double)expectedValue) == 0;
+          }
+
+          //do this as double...
+          if (expectedValue instanceof String) {
+            Double expectedDouble = PersonWsServerUtils.doubleObjectValue(expectedValue, true);
+            if (expectedDouble == null) {
+              return false;
+            }
+            Double thisFloating = this.integer.doubleValue();
+            return NumberUtils.compare(thisFloating, expectedDouble) == 0;
+          }
+          
+          throw new RuntimeException("Expecting type of double, long, or string, but was: " + expectedValue.getClass().getName() + ", " + expectedValue);
+        }
+      case string:
+
+        if (expectedValue == this.string) {
+          return true;
+        }
+        if (this.string == null || expectedValue == null) {
+          return false;
+        }
+
+        {
+          //must be a boolean
+          String expectedString = null;
+          
+          if (expectedValue instanceof String) {
+            //string easy
+            expectedString = (String)expectedValue;
+          } else if (expectedValue instanceof Boolean) {
+            
+            //for boolean, lets not go to string, lets try (failsafe) to go to boolean
+            Boolean expectedBoolean = (Boolean)expectedValue;
+            Boolean thisBoolean = null;
+            try {
+              thisBoolean = PersonWsServerUtils.booleanObjectValue(this.string);
+            } catch (Exception e) {
+              LOG.debug("Cant parse boolean: '" + expectedValue + "'");
+              return false;
+            }
+
+            if (expectedBoolean == thisBoolean) {
+              return true;
+            }
+            
+            if (expectedBoolean == null || thisBoolean == null) {
+              return false;
+            }
+            
+            return expectedBoolean.equals(thisBoolean);
+            
+          } else if (expectedValue instanceof Double) {
+            expectedString = Double.toString((Double)expectedValue);
+          } else if (expectedValue instanceof Long) {
+            expectedString = Long.toString((Long)expectedValue);
+          } else {
+            throw new RuntimeException("Expecting type of double, long, or string, but was: " + expectedValue.getClass().getName() + ", " + expectedValue);
+          }
+          return StringUtils.equals(expectedString, this.string);
+        }
+
+        
+      //object is already handled  
+      case object:
+      default:
+        throw new RuntimeException("Not expecting object type: " + this.getPwsNodeType());
+    }
+
+  }
+  
   /**
    * 
    * @see java.lang.Object#toString()
@@ -757,7 +939,7 @@ public class PwsNode {
   private PwsNode retrieveArrayItemByAttributeValueHelper(String attributeName, Object attributeValue) {
     
     if (!this.arrayType) {
-      throw new RuntimeException("expecting node type of array");
+      throw new RuntimeException("expecting node type of array: " + this);
     }
 
     int length = PersonWsServerUtils.length(this.array);
@@ -767,42 +949,12 @@ public class PwsNode {
     
     PwsNode foundNode = null;
 
-    int index = 0;
     for (PwsNode item : this.array) {
 
       //loop through the array and get the field by attribute name
       PwsNode fieldItem = item.retrieveField(attributeName);
       if (fieldItem != null) {
-        boolean equal = false;
-
-        switch (fieldItem.getPwsNodeType()) {
-
-          case bool:
-            Boolean searchedBoolean = PersonWsServerUtils.booleanObjectValue(attributeValue);
-            equal = PersonWsServerUtils.equals(searchedBoolean, fieldItem.getBool());
-            break;
-
-          case floating:
-            Double searchedDouble = PersonWsServerUtils.doubleObjectValue(attributeValue, true);
-            equal = PersonWsServerUtils.equals(searchedDouble, fieldItem.getFloating());
-            break;
-
-          case integer:
-            Long searchedLong = PersonWsServerUtils.longObjectValue(attributeValue, true);
-            equal = PersonWsServerUtils.equals(searchedLong, fieldItem.getInteger());
-            break;
-
-          case string:
-            String searchedString = PersonWsServerUtils.stringValue(attributeValue);
-            equal = StringUtils.equals(searchedString, fieldItem.getString());
-            break;
-
-          case object:
-            throw new RuntimeException("Not expecting node of type object!  Must be a scalar!  "  + this );
-            
-          default:
-            throw new RuntimeException("Not expecting node type: " + fieldItem.getPwsNodeType() + ", " + this);
-        }
+        boolean equal = fieldItem.equalsScalar(attributeValue);
         
         if (equal) {
           if (foundNode != null) {

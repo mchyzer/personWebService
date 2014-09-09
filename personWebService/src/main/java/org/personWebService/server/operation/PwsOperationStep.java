@@ -22,24 +22,47 @@ public class PwsOperationStep {
   private static final Log LOG = PersonWsServerUtils.getLog(PwsOperationStep.class);
 
   /**
-   * arraySelector e.g. field.anotherField
+   * array selector for debug
    */
-  private String arraySelector = null;
-
+  private String arraySelector;
+  
+  
+  
+  
   /**
-   * arraySelector e.g. field.anotherField
+   * array selector for debug
    * @return the arraySelector
    */
   public String getArraySelector() {
     return this.arraySelector;
   }
+
   
   /**
-   * arraySelector e.g. field.anotherField
+   * array selector for debug
    * @param arraySelector1 the arraySelector to set
    */
   public void setArraySelector(String arraySelector1) {
     this.arraySelector = arraySelector1;
+  }
+
+  /** steps to get to a selector  */
+  private List<PwsOperationStep> arraySelectorSteps;
+  
+  /**
+   * steps to get to a selector
+   * @return the arraySelectorSteps
+   */
+  public List<PwsOperationStep> getArraySelectorSteps() {
+    return this.arraySelectorSteps;
+  }
+  
+  /**
+   * steps to get to a selector
+   * @param arraySelectorSteps1 the arraySelectorSteps to set
+   */
+  public void setArraySelectorSteps(List<PwsOperationStep> arraySelectorSteps1) {
+    this.arraySelectorSteps = arraySelectorSteps1;
   }
 
   /**
@@ -47,9 +70,6 @@ public class PwsOperationStep {
    * selector attribute
    */
   private Object arraySelectorAttributeValue;
-  
-  
-  
   
   /**
    * should be a Long, Double, Boolean, or String, value we are looking for in a
@@ -86,6 +106,12 @@ public class PwsOperationStep {
     if (this.arrayIndex != -1) {
       result.append(", arrayIndex: ").append(this.arrayIndex);
     }
+    if (!StringUtils.isBlank(this.arraySelector)) {
+      result.append(", arraySelector: '").append(this.arraySelector).append("'");
+      result.append(", arraySelectorValue: '").append(PersonWsServerUtils.abbreviate(this.arraySelectorAttributeValue, 30)).append("'");
+      result.append(", arraySelectorStepSize: '").append(PersonWsServerUtils.length(this.arraySelectorSteps)).append("'");
+    }
+    
     result.append("}");
     return result.toString();
     
@@ -97,8 +123,10 @@ public class PwsOperationStep {
    * @param operationExpression
    * @return the operation step
    */
-  public static PwsOperationStep create(String fromFieldName, String operationExpression) {
+  public static List<PwsOperationStep> create(String fromFieldName, String operationExpression) {
 
+    List<PwsOperationStep> results = new ArrayList<PwsOperationStep>();
+    
     PwsOperationStep pwsOperationStep = new PwsOperationStep();
     pwsOperationStep.setFromFieldName(fromFieldName);
     String fieldName = null;
@@ -116,6 +144,7 @@ public class PwsOperationStep {
         if (indexString.startsWith("@")) {
           //something like @"something"."something"='something'
           pwsOperationStep.setPwsOperationStepEnum(PwsOperationStepEnum.traverseArrayBySelector);
+          pwsOperationStep.setArraySelector(indexString);
           //take off the @
           indexString = indexString.substring(1);
           String[] equalsParts = PersonWsServerUtils.splitTrimQuoted(indexString, "=");
@@ -126,7 +155,68 @@ public class PwsOperationStep {
           String leftSide = equalsParts[0];
           String rightSide = equalsParts[1];
           
-          if (leftSide)
+          pwsOperationStep.setArraySelectorSteps(PwsOperationStep.parseExpression(fieldName, leftSide));
+          
+          Object value = null;
+          // null just means null
+          if (!StringUtils.equals(rightSide, "null")) {
+            
+            boolean foundValue = false;
+
+            //try string
+            if (rightSide.startsWith("\"") || rightSide.startsWith("'")) {
+              value = PersonWsServerUtils.unquoteString(rightSide);
+              foundValue = true;
+
+            }
+            
+            if (!foundValue) {
+              //try boolean
+              try {
+                value = PersonWsServerUtils.booleanObjectValue(rightSide);
+                foundValue = true;
+              } catch (Exception e) {
+                
+              }
+            }
+            //try integer
+            if (!foundValue) {
+              try {
+                value = PersonWsServerUtils.longObjectValue(rightSide, false);
+                foundValue = true;
+              } catch (Exception e) {
+                
+              }
+            }
+            
+            //try double
+            if (!foundValue) {
+              try {
+                value = PersonWsServerUtils.doubleObjectValue(rightSide, false);
+                foundValue = true;
+              } catch (Exception e) {
+                
+              }
+            }
+
+            //not valid
+            if (!foundValue) {
+              throw new RuntimeException("The right side of an attribute selector cannot be parsed, "
+                  + "needs to be null, boolean, integer, floating, or quoted string, '" 
+                  + operationExpression + "', '" + rightSide + "'");
+            }
+          }
+          
+          pwsOperationStep.setArraySelectorAttributeValue(value);
+          
+          //from the array node
+          pwsOperationStep.setFromFieldName(fieldName);
+
+          //add a result for the simple traversal
+          PwsOperationStep interimStep = PersonWsServerUtils.listPopOne(create(fromFieldName, fieldName));
+          
+          results.add(interimStep);
+          
         } else {
           int index = PersonWsServerUtils.intValue(indexString);
   
@@ -154,7 +244,9 @@ public class PwsOperationStep {
       LOG.debug("Create Step: fromFieldName: " + fromFieldName + ", expression: " + operationExpression + ", step: " + pwsOperationStep.toString() );
     }
 
-    return pwsOperationStep;
+    results.add(pwsOperationStep);
+    
+    return results;
 
   }
   
@@ -181,28 +273,20 @@ public class PwsOperationStep {
       //simple case, no dot, no nonsense
       if (!StringUtils.isBlank(expression)) {
 
-        if (!PersonWsServerUtils.containsQuoted(expression, ".")) {
+        //lets traverse down
+        String[] expressionParts = PersonWsServerUtils.splitTrimQuoted(expression, ".");
+        PwsOperationStep previousStep = null;
+        for (String expressionPart : expressionParts) {
           
-          PwsOperationStep pwsOperationStep = PwsOperationStep.create(fromFieldName, expression);
-          pwsOperationSteps.add(pwsOperationStep);
-
-        } else {
-          
-          //lets traverse down
-          String[] expressionParts = PersonWsServerUtils.splitTrimQuoted(expression, ".");
-          PwsOperationStep previousStep = null;
-          for (String expressionPart : expressionParts) {
-            
-            PwsOperationStep pwsOperationStep = PwsOperationStep.create(
-                previousStep == null ? null : previousStep.getFieldName(), expressionPart);
-            pwsOperationSteps.add(pwsOperationStep);
-            previousStep = pwsOperationStep;
-          }
-          
+          List<PwsOperationStep> pwsOperationSubSteps = PwsOperationStep.create(
+              previousStep == null ? 
+                  (StringUtils.isBlank(fromFieldName) ? null : fromFieldName) 
+                      : previousStep.getFieldName(), expressionPart);
+          pwsOperationSteps.addAll(pwsOperationSubSteps);
+          previousStep = pwsOperationSubSteps.get(pwsOperationSubSteps.size()-1);
         }
         
       }
-
 
       operationStepParseCache.put(expression, pwsOperationSteps);
       

@@ -49,7 +49,35 @@ public class PwsNodeEvaluation {
         
         case traverseArrayBySelector:
           
-          fix this
+          if (LOG.isDebugEnabled()) {
+            
+            debugLog.put("selectorStepSize: ", PersonWsServerUtils.length(pwsOperationStep.getArraySelectorSteps()));
+            debugLog.put("selector: ", PersonWsServerUtils.length(pwsOperationStep.getArraySelector()));
+            
+          }
+
+          //selectors go against arrays
+          currentNode.setArrayType(true);
+          
+          //selectors are objects
+          currentNode.setPwsNodeType(PwsNodeType.object);
+          
+          
+          PwsNodeEvaluationResult selectorResult = evaluateSelector(currentNode, pwsOperationStep.getArraySelectorSteps(), autoCreate, pwsOperationStep.getArraySelectorAttributeValue());
+
+          if (LOG.isDebugEnabled()) {
+            
+            debugLog.put("selectorResult: ", selectorResult);
+            
+          }
+          result = selectorResult.getPwsNode();
+  
+          if (LOG.isDebugEnabled()) {
+            debugLog.put("node", result);
+          }
+  
+          return result;
+
           
         case traverseArray:
   
@@ -185,6 +213,67 @@ public class PwsNodeEvaluation {
     
     pwsNodeEvaluationResult.setPwsNode(currentNode);
 
+    return pwsNodeEvaluationResult;
+  }
+  
+  /**
+   * evaluate selector steps against a node
+   * @param pwsNode
+   * @param pwsSelectorSteps
+   * @param autoCreate if should autocreate
+   * @param expectedValue expecting value
+   * @return the result
+   */
+  static PwsNodeEvaluationResult evaluateSelector(PwsNode pwsNode, 
+      List<PwsOperationStep> pwsSelectorSteps, boolean autoCreate, Object expectedValue) {
+    
+    PwsNodeEvaluationResult pwsNodeEvaluationResult = new PwsNodeEvaluationResult();
+
+    PwsNode arrayNodeFound = null;
+    PwsNode resultArrayNodeFound = null;
+    
+    //lets just try to find the node...
+    for (PwsNode arrayItem : PersonWsServerUtils.nonNull(pwsNode.getArray())) {
+      
+      //see if its there without auto create
+      PwsNodeEvaluationResult arrayItemResult = evaluate(arrayItem, pwsSelectorSteps, false);
+
+      if (arrayItemResult.getPwsNode() != null) {
+
+        PwsNode arrayItemResultNode = arrayItemResult.getPwsNode();
+        
+        boolean equals = arrayItemResultNode.equalsScalar(expectedValue);
+        
+        if (equals) {
+          if (arrayNodeFound != null) {
+            throw new RuntimeException("Found multiple results for selector! " + pwsNode + ", " + PersonWsServerUtils.toStringForLog(pwsSelectorSteps));
+          }
+          arrayNodeFound = arrayItemResultNode;
+          resultArrayNodeFound = arrayItem;
+        }
+      }
+      
+    }
+
+    if (arrayNodeFound != null || !autoCreate) {
+      pwsNodeEvaluationResult.setPwsNode(resultArrayNodeFound);
+      return pwsNodeEvaluationResult;
+    }
+
+    //we are autocreating
+    PwsNode arrayNode = new PwsNode();
+    PwsNodeEvaluationResult createNodeResult = evaluate(arrayNode, pwsSelectorSteps, autoCreate);
+    
+    if (createNodeResult.getPwsNode() == null) {
+      throw new RuntimeException("Why is autocreate node null? " + pwsNode + ", " + PersonWsServerUtils.toStringForLog(pwsSelectorSteps));
+    }
+
+    //this is the parent node in the array
+    pwsNodeEvaluationResult.setPwsNode(arrayNode);
+
+    //add this to the array
+    pwsNode.addArrayItem(arrayNode);
+    
     return pwsNodeEvaluationResult;
   }
   
