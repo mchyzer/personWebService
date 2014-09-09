@@ -37,7 +37,7 @@ public class PwsNodeTranslationTest extends TestCase {
    * @param args
    */
   public static void main(String[] args) {
-    TestRunner.run(new PwsNodeTranslationTest("testTranslateAttributeValueSelectorObjectToSelector"));
+    TestRunner.run(new PwsNodeTranslationTest("testTranslateAttributeValueSelectorObjectToSelectorField"));
     //TestRunner.run(PwsNodeTranslationTest.class);
   }
 
@@ -283,6 +283,32 @@ public class PwsNodeTranslationTest extends TestCase {
     assertEquals("{\"someField\":{\"another\":[{\"lang\":{\"whatever\":\"fr\"},\"aField2\":\"theVal\"}]}}", newNode.toJson());
 
   }
+
+ /**
+   * someField.another[@lang.something='en'].yo = someField2.another2[@lang.whatever='fr'].aField2
+   */
+  public void testTranslateAttributeValueSelectorObjectToSelectorField() {
+
+    //{"someInteger":45,"someFloat":34.567,"someFloatInt":34,"someBoolTrue":true,"someBoolFalse":false,"someString":"some string","sub":{"subInteger":37,"subString":"sub string"},"arraySub":[{"subInteger":37,"subString":"sub string"},{"subInteger":37,"subString":"sub string"}],"arrayInteger":[28,17,9],"arrayString":["abc","123","true"]}
+    PwsNode dataNode = PwsNode.fromJson("{\"someField2\":{\"another2\":[{\"lang\":{\"whatever\":\"fr\"},\"aField2\":\"theVal\"},{\"lang\":{\"whatever\":\"en\"},\"aField2\":\"theVal2\"}]}}");
+
+    PwsNode newNode = new PwsNode();
+    newNode.setPwsNodeType(PwsNodeType.object);
+
+    //{"someField":{"another":[{"lang":{},"yo":"theVal"}]}}
+    
+    PwsNodeTranslation.assign(newNode, dataNode, "someField.another[@lang.something='en'].yo = someField2.another2[@lang.whatever='fr'].aField2");
+
+    System.out.println(newNode.toJson());
+    
+    assertEquals("theVal", dataNode.retrieveField("someField2").retrieveField("another2").retrieveArrayItemByAttributeValue("lang.whatever", "fr").retrieveField("aField2").getString());
+    assertEquals("theVal", newNode.retrieveField("someField").retrieveField("another").retrieveArrayItemByAttributeValue("lang.something", "en").retrieveField("yo").getString());
+
+    assertEquals("{\"someField2\":{\"another2\":[{\"lang\":{\"whatever\":\"fr\"},\"aField2\":\"theVal\"},{\"lang\":{\"whatever\":\"en\"},\"aField2\":\"theVal2\"}]}}", dataNode.toJson());
+    assertEquals("{\"someField\":{\"another\":[{\"lang\":{\"something\":\"en\"},\"yo\":\"theVal\"}]}}", newNode.toJson());
+
+  }
+
   
   /**
    * someField = someField
@@ -305,7 +331,6 @@ public class PwsNodeTranslationTest extends TestCase {
     assertEquals("{\"someField\":\"someValue\"}", dataNode.toJson());
 
     //Tests:
-    // someField.another[@lang.something='en'].yo = someField2.another2[@lang.whatever='fr'].hey
     // someField.another[@lang.something='en'].there = someField2.another2[@lang.whatever='fr'].where
     // someField.another[@lang.something='en'].field = ${null}
     // someField.another[@lang.something='en'].field2 = ${"label"}

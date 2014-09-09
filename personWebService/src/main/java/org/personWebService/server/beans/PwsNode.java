@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import net.sf.json.JSONArray;
+import net.sf.json.JSONNull;
 import net.sf.json.JSONObject;
 import net.sf.json.JSONSerializer;
 
@@ -537,6 +538,31 @@ public class PwsNode {
     return jsonObject.toString();
     
   }
+  
+  /**
+   * 
+   * @param value
+   */
+  public void assignValueAndType(Object value) {
+    if (value != null) {
+      if (value instanceof Boolean) {
+        this.setPwsNodeType(PwsNodeType.bool);
+        this.setBool((Boolean)value);
+      } else if (value instanceof Long) {
+        this.setPwsNodeType(PwsNodeType.integer);
+        this.setInteger((Long)value);
+      } else if (value instanceof Double) {
+        this.setPwsNodeType(PwsNodeType.floating);
+        this.setFloating((Double)value);
+      } else if (value instanceof String) {
+        this.setPwsNodeType(PwsNodeType.string);
+        this.setString((String)value);
+      } else {
+        throw new RuntimeException("Only expecting type of null, "
+            + "Boolean, Long, Double, String, but received: " + value.getClass().getName());
+      }
+    }
+  }
 
   /**
    * assign an object from the fromObject to this object
@@ -631,7 +657,7 @@ public class PwsNode {
         if (field.isArrayType()) {
   
           if (field.array == null) {
-            jsonObject.element(fieldName, (Object)null);
+            jsonObject.element(fieldName, JSONNull.getInstance());
           } else {
           
             JSONArray jsonArray = new JSONArray();
@@ -681,7 +707,7 @@ public class PwsNode {
               if (theInteger != null) {
                 jsonObject.element(fieldName, theInteger.longValue());
               } else {
-                jsonObject.element(fieldName, (Object)null);
+                jsonObject.element(fieldName, JSONNull.getInstance());
               }
               break;
             case bool:
@@ -689,7 +715,7 @@ public class PwsNode {
               if (theBoolean != null) {
                 jsonObject.element(fieldName, theBoolean.booleanValue());
               } else {
-                jsonObject.element(fieldName, (Object)null);
+                jsonObject.element(fieldName, JSONNull.getInstance());
               }
               break;
             case floating:
@@ -697,7 +723,7 @@ public class PwsNode {
               if (theFloating != null) {
                 jsonObject.element(fieldName, theFloating.doubleValue());
               } else {
-                jsonObject.element(fieldName, (Object)null);
+                jsonObject.element(fieldName, JSONNull.getInstance());
               }
               break;
             case string:
@@ -705,13 +731,13 @@ public class PwsNode {
               if (theString != null) {
                 jsonObject.element(fieldName, theString);
               } else {
-                jsonObject.element(fieldName, (Object)null);
+                jsonObject.element(fieldName, JSONNull.getInstance());
               }
               break;
             case object:
               
               if (field.object == null) {
-                jsonObject.element(fieldName, (Object)null);
+                jsonObject.element(fieldName, JSONNull.getInstance());
               } else {
                 JSONObject fieldObject = field.toJsonObjectHelper();
                 jsonObject.element(fieldName, fieldObject);

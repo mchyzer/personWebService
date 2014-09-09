@@ -276,6 +276,8 @@ public class PwsNodeEvaluation {
       throw new RuntimeException("Why is autocreate node null? " + pwsNode + ", " + PersonWsServerUtils.toStringForLog(pwsSelectorSteps));
     }
 
+    createNodeResult.getPwsNode().assignValueAndType(expectedValue);
+    
     //this is the parent node in the array
     pwsNodeEvaluationResult.setPwsNode(arrayNode);
 
