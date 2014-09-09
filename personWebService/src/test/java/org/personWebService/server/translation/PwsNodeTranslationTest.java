@@ -38,7 +38,7 @@ public class PwsNodeTranslationTest extends TestCase {
    * @param args
    */
   public static void main(String[] args) {
-    TestRunner.run(new PwsNodeTranslationTest("testTranslateAttributeValueSelectorObjectToSelectorFieldField"));
+    TestRunner.run(new PwsNodeTranslationTest("testTranslateAttributeValueSelectorObjectToSelectorElTertiary"));
     //TestRunner.run(PwsNodeTranslationTest.class);
   }
 
@@ -207,8 +207,6 @@ public class PwsNodeTranslationTest extends TestCase {
     PwsNodeTranslation.assign(newNode, dataNode, "\"someField:complicate.whatever\".\"someField:complicate.another\"[2] "
         + "= \"someField2:complicate2.whatever2\".\"someField2:complicate.another2\"[3]");
 
-    System.out.println(newNode.toJson());
-    
     assertEquals("d", dataNode.retrieveField("someField2:complicate2.whatever2").retrieveField("someField2:complicate.another2").retrieveArrayItem(3).getString());
     assertEquals("d", newNode.retrieveField("someField:complicate.whatever").retrieveField("someField:complicate.another").retrieveArrayItem(2).getString());
 
@@ -231,8 +229,6 @@ public class PwsNodeTranslationTest extends TestCase {
     PwsNodeTranslation.assign(newNode, dataNode, "\"some\\\"Field:compl[icate.whate=ver\".\"some\\\"Field:complic[ate.an=other\"[2] "
         + "= \"some\\\"Field2:complic[ate2.wha=tever2\".\"some\\\"Field2:co[mplic=ate.another2\"[3]");
 
-    System.out.println(newNode.toJson());
-    
     assertEquals("d", dataNode.retrieveField("some\"Field2:complic[ate2.wha=tever2").retrieveField("some\"Field2:co[mplic=ate.another2").retrieveArrayItem(3).getString());
     assertEquals("d", newNode.retrieveField("some\"Field:compl[icate.whate=ver").retrieveField("some\"Field:complic[ate.an=other").retrieveArrayItem(2).getString());
 
@@ -333,7 +329,87 @@ public class PwsNodeTranslationTest extends TestCase {
 
   }
 
-  
+
+  /**
+   * someField.another[@lang.something='en'].field = (floating)${'3.4'}${'5'}
+   */
+  public void testTranslateAttributeValueSelectorObjectToSelectorEl() {
+
+    //{"someInteger":45,"someFloat":34.567,"someFloatInt":34,"someBoolTrue":true,"someBoolFalse":false,"someString":"some string","sub":{"subInteger":37,"subString":"sub string"},"arraySub":[{"subInteger":37,"subString":"sub string"},{"subInteger":37,"subString":"sub string"}],"arrayInteger":[28,17,9],"arrayString":["abc","123","true"]}
+    PwsNode dataNode = PwsNode.fromJson("{\"someField2\":{\"another2\":[{\"lang\":{\"whatever\":\"fr\"},\"aField2\":\"theVal\"},{\"lang\":{\"whatever\":\"en\"},\"aField2\":\"theVal2\"}]}}");
+
+    PwsNode newNode = new PwsNode();
+    newNode.setPwsNodeType(PwsNodeType.object);
+
+    PwsNodeTranslation.assign(newNode, dataNode, "someField.another[@lang.something='en'].field = (floating)${'3.4'}${'5'}");
+
+    assertEquals("theVal", dataNode.retrieveField("someField2").retrieveField("another2")
+        .retrieveArrayItemByAttributeValue("lang.whatever", "fr").retrieveField("aField2").getString());
+    
+    // {"someField":{"another":[{"lang":{"something":"en"},"field":null}]}}
+    
+    assertEquals(new Double(3.45), newNode.retrieveField("someField").retrieveField("another")
+        .retrieveArrayItemByAttributeValue("lang.something", "en").retrieveField("field").getFloating());
+
+    assertEquals("{\"someField2\":{\"another2\":[{\"lang\":{\"whatever\":\"fr\"},\"aField2\":\"theVal\"},{\"lang\":{\"whatever\":\"en\"},\"aField2\":\"theVal2\"}]}}", dataNode.toJson());
+    assertEquals("{\"someField\":{\"another\":[{\"lang\":{\"something\":\"en\"},\"field\":3.45}]}}", newNode.toJson());
+
+  }
+
+  /**
+   * someField.another[@lang.something='en'].field = ${(3.4 > 3) ? 2 : 3}${'5}whatever'}
+   */
+  public void testTranslateAttributeValueSelectorObjectToSelectorElTertiary() {
+
+    //{"someInteger":45,"someFloat":34.567,"someFloatInt":34,"someBoolTrue":true,"someBoolFalse":false,"someString":"some string","sub":{"subInteger":37,"subString":"sub string"},"arraySub":[{"subInteger":37,"subString":"sub string"},{"subInteger":37,"subString":"sub string"}],"arrayInteger":[28,17,9],"arrayString":["abc","123","true"]}
+    PwsNode dataNode = PwsNode.fromJson("{\"someField2\":{\"another2\":[{\"lang\":{\"whatever\":\"fr\"},\"aField2\":\"theVal\"},{\"lang\":{\"whatever\":\"en\"},\"aField2\":\"theVal2\"}]}}");
+
+    PwsNode newNode = new PwsNode();
+    newNode.setPwsNodeType(PwsNodeType.object);
+
+    PwsNodeTranslation.assign(newNode, dataNode, "someField.another[@lang.something='en'].field = ${(3.4 > 3) ? 2 : 3} ${'5}whatever'}");
+
+    assertEquals("theVal", dataNode.retrieveField("someField2").retrieveField("another2")
+        .retrieveArrayItemByAttributeValue("lang.whatever", "fr").retrieveField("aField2").getString());
+    
+    // {"someField":{"another":[{"lang":{"something":"en"},"field":null}]}}
+    
+    String result = newNode.retrieveField("someField").retrieveField("another")
+    .retrieveArrayItemByAttributeValue("lang.something", "en").retrieveField("field").getString();
+    assertEquals(result,
+        "2 5}whatever", result);
+
+    assertEquals("{\"someField2\":{\"another2\":[{\"lang\":{\"whatever\":\"fr\"},\"aField2\":\"theVal\"},{\"lang\":{\"whatever\":\"en\"},\"aField2\":\"theVal2\"}]}}", dataNode.toJson());
+    assertEquals("{\"someField\":{\"another\":[{\"lang\":{\"something\":\"en\"},\"field\":\"2 5}whatever\"}]}}", newNode.toJson());
+
+  }
+
+  /**
+   * someField.another[@lang.something='en'].field = ${node.fields["someField2"].retrieveField("another2").retrieveArrayItemByAttributeValue("lang.whatever", "fr").fields["aField2"].string} ${node.retrieveField("someField2").retrieveField("another2").array[1].retrieveField("aField2").getString()}
+   */
+  public void testTranslateAttributeValueSelectorElTraverse() {
+
+    //{"someInteger":45,"someFloat":34.567,"someFloatInt":34,"someBoolTrue":true,"someBoolFalse":false,"someString":"some string","sub":{"subInteger":37,"subString":"sub string"},"arraySub":[{"subInteger":37,"subString":"sub string"},{"subInteger":37,"subString":"sub string"}],"arrayInteger":[28,17,9],"arrayString":["abc","123","true"]}
+    PwsNode dataNode = PwsNode.fromJson("{\"someField2\":{\"another2\":[{\"lang\":{\"whatever\":\"fr\"},\"aField2\":\"theVal\"},{\"lang\":{\"whatever\":\"en\"},\"aField2\":\"theVal2\"}]}}");
+
+    PwsNode newNode = new PwsNode();
+    newNode.setPwsNodeType(PwsNodeType.object);
+
+    PwsNodeTranslation.assign(newNode, dataNode, "someField.another[@lang.something='en'].field = ${node.fields[\"someField2\"].retrieveField(\"another2\").retrieveArrayItemByAttributeValue('lang.whatever', \"fr\").fields[\"aField2\"].string} ${node.retrieveField(\"someField2\").retrieveField(\"another2\").array[1].retrieveField(\"aField2\").getString()}");
+
+    assertEquals("theVal", dataNode.retrieveField("someField2").retrieveField("another2")
+        .retrieveArrayItemByAttributeValue("lang.whatever", "fr").retrieveField("aField2").getString());
+    
+    // {"someField":{"another":[{"lang":{"something":"en"},"field":null}]}}
+    
+    assertEquals("theVal theVal2", newNode.retrieveField("someField").retrieveField("another")
+        .retrieveArrayItemByAttributeValue("lang.something", "en").retrieveField("field").getString());
+
+    assertEquals("{\"someField2\":{\"another2\":[{\"lang\":{\"whatever\":\"fr\"},\"aField2\":\"theVal\"},{\"lang\":{\"whatever\":\"en\"},\"aField2\":\"theVal2\"}]}}", dataNode.toJson());
+    assertEquals("{\"someField\":{\"another\":[{\"lang\":{\"something\":\"en\"},\"field\":\"theVal theVal2\"}]}}", newNode.toJson());
+
+  }
+
   /**
    * someField = someField
    */
@@ -353,13 +429,6 @@ public class PwsNodeTranslationTest extends TestCase {
 
     assertEquals("{\"someField\":\"someValue\"}", newNode.toJson());
     assertEquals("{\"someField\":\"someValue\"}", dataNode.toJson());
-
-    //Tests:
-    // someField.another[@lang.something='en'].field2 = ${"label"}
-    // try EL on the object
-    // someField = ${fromObject.field('someField')} ${fromObject.array[2].field('someField')}
-    // someField = ${SomeClass.resolve("someField")} ${SomeClass.resolve("someField")}
-    // someField = ${SomeClass.resolve("someField").valueBoolean ? 'hey' : 'there'}
 
   }
 

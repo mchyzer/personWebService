@@ -8946,8 +8946,7 @@ public class PersonWsServerUtils {
     try {
       JexlContext jc = allowStaticClasses ? new JexlCustomMapContext() : new MapContext();
 
-
-
+      //start index of section
       int index = 0;
 
       for (String key: variableMap.keySet()) {
@@ -8959,40 +8958,39 @@ public class PersonWsServerUtils {
       //if you add another one here, add it in the logs below
 
       // matching ${ exp }   (non-greedy)
-      Pattern pattern = Pattern.compile("\\$\\{(.*?)\\}");
-      Matcher matcher = pattern.matcher(stringToParse);
+      List<Integer> sectionIndexes = PersonWsServerUtils.indexOfsQuoted(stringToParse, "${"); 
 
       StringBuilder result = new StringBuilder();
 
+      int count = 0;
+      
       //loop through and find each script
-      while(matcher.find()) {
-        result.append(stringToParse.substring(index, matcher.start()));
+      for (int sectionIndex : nonNull(sectionIndexes)) {
 
-        //here is the script inside the curlies
-        String script = matcher.group(1);
+        //get the stuff in between
+        result.append(stringToParse.substring(index, sectionIndex));
 
-        index = matcher.end();
-
-        if (script.contains("{")) {
-          //we need to match up some curlies here...
-          int scriptStart = matcher.start(1);
-          int openCurlyCount = 0;
-          for (int i=scriptStart; i<stringToParse.length();i++) {
-            char curChar = stringToParse.charAt(i);
-            if (curChar == '{') {
-              openCurlyCount++;
-            }
-            if (curChar == '}') {
-              openCurlyCount--;
-              //negative 1 since we need to get to the close of the parent one...
-              if (openCurlyCount <= -1) {
-                script = stringToParse.substring(scriptStart, i);
-                index = i+1;
-                break;
-              }
-            }
-          }
+        String scriptletSection = null;
+        
+        //if we are on the last one
+        if (count == length(sectionIndexes)-1) {
+          //add two since two chars in ${
+          scriptletSection = stringToParse.substring(sectionIndex+2, stringToParse.length());
+        } else {
+          
+          int nextSectionIndex = sectionIndexes.get(count+1);
+          
+          scriptletSection = stringToParse.substring(sectionIndex+2, nextSectionIndex);
         }
+        
+        //where is the end?
+        int endCurlyIndex = indexOfQuoted(scriptletSection, "}");
+        
+        //here is the script inside the curlies
+        String script = scriptletSection.substring(0, endCurlyIndex);
+
+        //add one for the end index, add two for the ${ opening
+        index = sectionIndex+endCurlyIndex+1+2;
 
         Expression e = jexlEngines.get(new MultiKey(silent, lenient)).createExpression(script);
 
@@ -9034,7 +9032,7 @@ public class PersonWsServerUtils {
         }
 
         result.append(o);
-
+        count++;
       }
 
       result.append(stringToParse.substring(index, stringToParse.length()));

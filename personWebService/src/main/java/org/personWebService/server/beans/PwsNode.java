@@ -46,9 +46,15 @@ public class PwsNode {
       
       if (PersonWsServerUtils.isBlank(value)) {
         toNode.setPwsNodeType(PwsNodeType.object);
-        //TODO clear out object?
+        
+        //clear out the sub objects
+        Map<String, PwsNode> theObjects = toNode.getFields();
+        if (theObjects != null) {
+          theObjects.clear();
+        }
+        
       } else {
-        throw new RuntimeException("Cant type cast a non null scalar to an object");
+        throw new RuntimeException("Cant type cast a non null scalar to an object: " + fromNode);
       }
       
     } else if (typeCastClass == String.class) {
@@ -85,12 +91,29 @@ public class PwsNode {
       
       throw new RuntimeException("Expecting type Object, Long, "
           + "Double, Boolean, String, but was: " + typeCastClass.getName());
-      
+
     }
 
-    
   }
-  
+
+  /**
+   * return the subobjects
+   * @return the subobjects
+   */
+  public Map<String, PwsNode> getFields() {
+    
+    //allow empty type if empty fields
+    if (this.getPwsNodeType() == null && PersonWsServerUtils.length(this.object) == 0) {
+      return this.object;
+    }
+    
+    if (this.getPwsNodeType() != PwsNodeType.object) {
+      throw new RuntimeException("Expecting object but was: " + this.getPwsNodeType());
+    }
+    
+    return this.object;
+  }
+
   /**
    * get the value of the object
    * @return the object
@@ -930,13 +953,13 @@ public class PwsNode {
    */
   public void addArrayItem(PwsNode pwsNode) {
     if (!this.arrayType) {
-      throw new RuntimeException("expecting node type of array");
+      throw new RuntimeException("expecting node type of array" + ", " + this);
     }
     
     if (pwsNode != null) {
       if (this.pwsNodeType != pwsNode.getPwsNodeType()) {
         throw new RuntimeException("expecting array type of " + this.pwsNodeType 
-            + ", but assigning: " + pwsNode.getPwsNodeType());
+            + ", but assigning: " + pwsNode.getPwsNodeType() + ", " + this);
       }
     }
     
@@ -960,7 +983,7 @@ public class PwsNode {
     if (pwsNode != null) {
       if (this.pwsNodeType != pwsNode.getPwsNodeType()) {
         throw new RuntimeException("expecting array type of " + this.pwsNodeType 
-            + ", but assigning: " + pwsNode.getPwsNodeType());
+            + ", but assigning: " + pwsNode.getPwsNodeType() + ", " + this);
       }
     }
     
@@ -970,7 +993,7 @@ public class PwsNode {
 
     int length = PersonWsServerUtils.length(this.array);
     if (length - 1 < index) {
-      throw new RuntimeException("Trying to get index: " + index + ", but array is only length: " + length);
+      throw new RuntimeException("Trying to get index: " + index + ", but array is only length: " + length + ", " + this);
     }
     
     this.array.set(index, pwsNode);
@@ -996,12 +1019,12 @@ public class PwsNode {
   public PwsNode retrieveArrayItem(int index) {
     
     if (!this.arrayType) {
-      throw new RuntimeException("expecting node type of array");
+      throw new RuntimeException("expecting node type of array" + ", " + this);
     }
 
     int length = PersonWsServerUtils.length(this.array);
     if (length - 1 < index) {
-      throw new RuntimeException("Trying to get index: " + index + ", but array is only length: " + length);
+      throw new RuntimeException("Trying to get index: " + index + ", but array is only length: " + length + ", " + this);
     }
     
     return this.array.get(index);
@@ -1104,7 +1127,7 @@ public class PwsNode {
   public void assignField(String fieldName, PwsNode pwsNode) {
     
     if (this.pwsNodeType != PwsNodeType.object) {
-      throw new RuntimeException("expecting node type of object: " + this.pwsNodeType);
+      throw new RuntimeException("expecting node type of object: " + this.pwsNodeType + ", " + this);
     }
     
     if (this.object == null) {
@@ -1122,7 +1145,7 @@ public class PwsNode {
    */
   public PwsNode retrieveField(String fieldName) {
     if (this.pwsNodeType != PwsNodeType.object) {
-      throw new RuntimeException("expecting node type of object: " + this.pwsNodeType + ", " + fieldName);
+      throw new RuntimeException("expecting node type of object: " + this.pwsNodeType + ", " + fieldName + ", " + this);
     }
 
     if (this.object != null) {
@@ -1138,7 +1161,7 @@ public class PwsNode {
    */
   public Set<String> getFieldNames() {
     if (this.pwsNodeType != PwsNodeType.object) {
-      throw new RuntimeException("expecting node type of object: " + this.pwsNodeType);
+      throw new RuntimeException("expecting node type of object: " + this.pwsNodeType + ", " + this);
     }
     
     if (this.object != null) {
@@ -1155,7 +1178,7 @@ public class PwsNode {
    */
   public PwsNode removeField(String fieldName) {
     if (this.pwsNodeType != PwsNodeType.object) {
-      throw new RuntimeException("expecting node type of object: " + this.pwsNodeType);
+      throw new RuntimeException("expecting node type of object: " + this.pwsNodeType + ", " + this);
     }
     
     if (this.object != null) {
@@ -1188,6 +1211,11 @@ public class PwsNode {
    * @return the bool
    */
   public Boolean getBool() {
+    
+    if (this.getPwsNodeType() != PwsNodeType.bool) {
+      throw new RuntimeException("Expecting bool but was: " + this.getPwsNodeType() + ", " + this);
+    }
+    
     return this.bool;
   }
 
@@ -1196,7 +1224,7 @@ public class PwsNode {
    */
   public void setBool(Boolean bool1) {
     if (this.pwsNodeType != PwsNodeType.bool) {
-      throw new RuntimeException("expecting node type of bool: " + this.pwsNodeType);
+      throw new RuntimeException("expecting node type of bool: " + this.pwsNodeType + ", " + this);
     }
     this.bool = bool1;
   }
@@ -1206,6 +1234,11 @@ public class PwsNode {
    * @return the floating
    */
   public Double getFloating() {
+    
+    if (this.getPwsNodeType() != PwsNodeType.floating) {
+      throw new RuntimeException("Expecting floating but was: " + this.getPwsNodeType() + ", " + this);
+    }
+    
     return this.floating;
   }
   
@@ -1214,7 +1247,7 @@ public class PwsNode {
    */
   public void setFloating(Double floating1) {
     if (this.pwsNodeType != PwsNodeType.floating) {
-      throw new RuntimeException("expecting node type of floating: " + this.pwsNodeType);
+      throw new RuntimeException("expecting node type of floating: " + this.pwsNodeType + ", " + this);
     }
     this.floating = floating1;
   }
@@ -1223,6 +1256,11 @@ public class PwsNode {
    * @return the string
    */
   public String getString() {
+    
+    if (this.getPwsNodeType() != PwsNodeType.string) {
+      throw new RuntimeException("Expecting string but was: " + this.getPwsNodeType() + ", " + this);
+    }
+    
     return this.string;
   }
 
@@ -1232,7 +1270,7 @@ public class PwsNode {
    */
   public void setString(String string1) {
     if (this.pwsNodeType != PwsNodeType.string) {
-      throw new RuntimeException("expecting node type of string: " + this.pwsNodeType);
+      throw new RuntimeException("expecting node type of string: " + this.pwsNodeType + ", " + this);
     }
     
     this.string = string1;
@@ -1243,6 +1281,11 @@ public class PwsNode {
    * @return the theInteger
    */
   public Long getInteger() {
+    
+    if (this.getPwsNodeType() != PwsNodeType.integer) {
+      throw new RuntimeException("Expecting integer but was: " + this.getPwsNodeType() + ", " + this);
+    }
+    
     return this.integer;
   }
 
@@ -1253,7 +1296,7 @@ public class PwsNode {
   public void setInteger(Long theInteger1) {
 
     if (this.pwsNodeType != PwsNodeType.integer) {
-      throw new RuntimeException("expecting node type of integer: " + this.pwsNodeType);
+      throw new RuntimeException("expecting node type of integer: " + this.pwsNodeType + ", " + this);
     }
 
     this.integer = theInteger1;
