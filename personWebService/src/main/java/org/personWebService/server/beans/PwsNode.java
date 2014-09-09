@@ -17,6 +17,9 @@ import net.sf.json.JSONSerializer;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.logging.Log;
+import org.personWebService.server.operation.PwsOperationStep;
+import org.personWebService.server.translation.PwsNodeEvaluation;
+import org.personWebService.server.translation.PwsNodeEvaluationResult;
 import org.personWebService.server.util.PersonWsServerUtils;
 
 
@@ -214,7 +217,7 @@ public class PwsNode {
     StringBuilder result = new StringBuilder();
     result.append("{");
     result.append("fromFieldName: ").append(this.fromFieldName);
-    result.append(", nodeType: ").append(this.pwsNodeType.name());
+    result.append(", nodeType: ").append(this.pwsNodeType == null ? null : this.pwsNodeType.name());
     if (this.arrayType) {
       result.append(", arrayType: ").append(this.arrayType);
       result.append(", arraySize: ").append(PersonWsServerUtils.length(this.array));
@@ -891,52 +894,52 @@ public class PwsNode {
 
   /**
    * retrieve an array index string
-   * @param attributeName 
+   * @param attributePath 
    * @param attributeValue 
    * @return the node or null if not found, exception if multiple found
    */
-  public PwsNode retrieveArrayItemByAttributeValue(String attributeName, String attributeValue) {
-    return retrieveArrayItemByAttributeValueHelper(attributeName, attributeValue);
+  public PwsNode retrieveArrayItemByAttributeValue(String attributePath, String attributeValue) {
+    return retrieveArrayItemByAttributeValueHelper(attributePath, attributeValue);
   }
 
   /**
    * retrieve an array index
-   * @param attributeName 
+   * @param attributePath 
    * @param attributeValue 
    * @return the node or null if not found, exception if multiple found
    */
-  public PwsNode retrieveArrayItemByAttributeValue(String attributeName, Long attributeValue) {
-    return retrieveArrayItemByAttributeValueHelper(attributeName, attributeValue);
+  public PwsNode retrieveArrayItemByAttributeValue(String attributePath, Long attributeValue) {
+    return retrieveArrayItemByAttributeValueHelper(attributePath, attributeValue);
   }
 
   /**
    * retrieve an array index
-   * @param attributeName 
+   * @param attributePath 
    * @param attributeValue 
    * @return the node or null if not found, exception if multiple found
    */
-  public PwsNode retrieveArrayItemByAttributeValue(String attributeName, Double attributeValue) {
-    return retrieveArrayItemByAttributeValueHelper(attributeName, attributeValue);
+  public PwsNode retrieveArrayItemByAttributeValue(String attributePath, Double attributeValue) {
+    return retrieveArrayItemByAttributeValueHelper(attributePath, attributeValue);
   }
 
   /**
    * retrieve an array index
-   * @param attributeName 
+   * @param attributePath 
    * @param attributeValue 
    * @return the node or null if not found, exception if multiple found
    */
-  public PwsNode retrieveArrayItemByAttributeValue(String attributeName, Boolean attributeValue) {
-    return retrieveArrayItemByAttributeValueHelper(attributeName, attributeValue);
+  public PwsNode retrieveArrayItemByAttributeValue(String attributePath, Boolean attributeValue) {
+    return retrieveArrayItemByAttributeValueHelper(attributePath, attributeValue);
   }
 
   
   /**
    * retrieve an array index
-   * @param attributeName 
+   * @param attributePath 
    * @param attributeValue 
    * @return the node or null if not found, exception if multiple found
    */
-  private PwsNode retrieveArrayItemByAttributeValueHelper(String attributeName, Object attributeValue) {
+  private PwsNode retrieveArrayItemByAttributeValueHelper(String attributePath, Object attributeValue) {
     
     if (!this.arrayType) {
       throw new RuntimeException("expecting node type of array: " + this);
@@ -947,25 +950,35 @@ public class PwsNode {
       return null;
     }
     
+    List<PwsOperationStep> pwsOperationSteps = PwsOperationStep.parseExpression(null, attributePath);
+    
     PwsNode foundNode = null;
 
     for (PwsNode item : this.array) {
 
       //loop through the array and get the field by attribute name
-      PwsNode fieldItem = item.retrieveField(attributeName);
+      PwsNodeEvaluationResult pwsNodeEvaluationResult = PwsNodeEvaluation.evaluate(item, pwsOperationSteps, false);
+      
+      PwsNode fieldItem = pwsNodeEvaluationResult.getPwsNode();
+
       if (fieldItem != null) {
         boolean equal = fieldItem.equalsScalar(attributeValue);
         
         if (equal) {
           if (foundNode != null) {
-            throw new RuntimeException("There are more than one array item to match the attribute: " 
-                + attributeName + ", and attribute value: " + attributeValue + ", node: " + this );
+            throw new RuntimeException("There are more than one array item to match the attribute path: '" 
+                + attributePath + "', and attribute value: " + attributeValue + ", node: " + this );
           }
           foundNode = item;
         }
       }
     }
+
+    
+    
+    
     return foundNode;
+
   }
 
   /**

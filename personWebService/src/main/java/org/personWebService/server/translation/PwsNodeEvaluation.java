@@ -31,7 +31,7 @@ public class PwsNodeEvaluation {
    * @param pwsNodeEvaluationResult
    * @return the new node
    */
-  static PwsNode evaluate(PwsNode currentNode, PwsOperationStep pwsOperationStep, 
+  public static PwsNode evaluate(PwsNode currentNode, PwsOperationStep pwsOperationStep, 
       boolean autoCreate, PwsNodeEvaluationResult pwsNodeEvaluationResult) {
     
     Map<String, Object> debugLog = LOG.isDebugEnabled() ? new LinkedHashMap<String, Object>() : null;
@@ -153,9 +153,12 @@ public class PwsNodeEvaluation {
           return theResult;
           
         case traverseField:
-  
-          result = currentNode.retrieveField(pwsOperationStep.getFieldName());
-  
+
+          //should be type object...
+          if (currentNode.getPwsNodeType() != null) {
+            result = currentNode.retrieveField(pwsOperationStep.getFieldName());
+          }
+          
           if (LOG.isDebugEnabled()) {
             debugLog.put("foundNode", result != null);
           }
@@ -163,6 +166,11 @@ public class PwsNodeEvaluation {
           //doesnt have this field, add it, tell the result it is added
           if (result == null && autoCreate) {
   
+            //if not initted, make it an object
+            if (currentNode.getPwsNodeType() == null) {
+              currentNode.setPwsNodeType(PwsNodeType.object);
+            }
+            
             pwsNodeEvaluationResult.setCreatedNode(true);
             result = new PwsNode(PwsNodeType.object);
             result.setFromFieldName(pwsOperationStep.getFieldName());
@@ -193,7 +201,7 @@ public class PwsNodeEvaluation {
    * @param autoCreate if should autocreate
    * @return the result
    */
-  static PwsNodeEvaluationResult evaluate(PwsNode pwsNode, 
+  public static PwsNodeEvaluationResult evaluate(PwsNode pwsNode, 
       List<PwsOperationStep> pwsOperationSteps, boolean autoCreate) {
     
     PwsNodeEvaluationResult pwsNodeEvaluationResult = new PwsNodeEvaluationResult();
@@ -224,7 +232,7 @@ public class PwsNodeEvaluation {
    * @param expectedValue expecting value
    * @return the result
    */
-  static PwsNodeEvaluationResult evaluateSelector(PwsNode pwsNode, 
+  public static PwsNodeEvaluationResult evaluateSelector(PwsNode pwsNode, 
       List<PwsOperationStep> pwsSelectorSteps, boolean autoCreate, Object expectedValue) {
     
     PwsNodeEvaluationResult pwsNodeEvaluationResult = new PwsNodeEvaluationResult();

@@ -274,7 +274,7 @@ public class PwsOperationStep {
       if (!StringUtils.isBlank(expression)) {
 
         //lets traverse down
-        String[] expressionParts = PersonWsServerUtils.splitTrimQuoted(expression, ".");
+        String[] expressionParts = PersonWsServerUtils.splitTrimQuotedBracketed(expression, ".");
         PwsOperationStep previousStep = null;
         for (String expressionPart : expressionParts) {
           
