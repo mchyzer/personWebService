@@ -61,6 +61,7 @@ public class UserByIdTest extends TestCase {
 
     String user = PersonWebServiceServerConfig.retrieveConfig().propertyValueStringRequired("personWsClient.webService.login");
     String pass = PersonWebServiceServerConfig.retrieveConfig().propertyValueStringRequired("personWsClient.webService.password");
+    String url = PersonWebServiceServerConfig.retrieveConfig().propertyValueStringRequired("personWsServer.appUrlBase");
 
     
     Credentials defaultcreds = new UsernamePasswordCredentials(user, pass);
@@ -68,7 +69,7 @@ public class UserByIdTest extends TestCase {
     //set auth scope to null and negative so it applies to all hosts and ports
     httpClient.getState().setCredentials(new AuthScope(null, -1), defaultcreds);
     
-    HttpMethodBase httpMethodBase = new GetMethod("http://localhost:8089/personWebService/personWs/v1/Users/10021368?contentType=json&indent=true");
+    HttpMethodBase httpMethodBase = new GetMethod(url + "personWs/v1/Users/10021368?contentType=json&indent=true");
     //HttpMethodBase httpMethodBase = new GetMethod("https://fasttest-small-a-01.apps.upenn.edu/personWebService/personWs/v1/Users/10021368?contentType=json&indent=true");
     
     httpMethodBase.setRequestHeader("Connection", "close");
