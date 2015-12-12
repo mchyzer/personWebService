@@ -1,0 +1,15 @@
+
+
+
+offCampusHouse.properties
+
+query.allowUsers = pcdws_offCampusHousing/medley.isc-seo.upenn.edu
+
+# return FIRST_NAME, LAST_NAME, KERBEROS_PRINCIPAL
+dataQuery = select * from off_campus_housing
+
+translation.name = name = ${query.FIRST_NAME} ${query.LAST_NAME}
+
+limitFields = FIRST_NAME, LAST_NAME, KERBEROS_PRINCIPAL
+
+
