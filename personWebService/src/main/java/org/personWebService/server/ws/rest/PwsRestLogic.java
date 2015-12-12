@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -83,7 +84,7 @@ public class PwsRestLogic {
       //do a query to get the data
       List<String[]> results = HibernateSession.bySqlStatic().listSelect(String[].class, 
           "select penn_id, kerberos_principal, admin_view_pref_first_name, admin_view_pref_middle_name, "
-          + "admin_view_pref_last_name, admin_view_pref_name, admin_view_pref_email_address, birth_date, gender, last_updated  "
+          + "admin_view_pref_last_name, admin_view_pref_name, admin_view_pref_email_address, birth_date, gender, last_updated, directory_prim_cent_affil_code  "
           + "from computed_person where penn_id = ? and active_code = 'A' "
           + "and (is_active_faculty = 'Y' or is_active_staff = 'Y' or is_active_student = 'Y' or directory_prim_cent_affil_id is not null)", PwsHibUtils.listObject(id));
 
@@ -151,7 +152,28 @@ public class PwsRestLogic {
           LOG.error("Cant parse date: " + lastUpdated);
         }
       }
-      
+
+      if (format2()) {
+
+        //do we do address?
+        //select CHAR_PENN_ID, ADDRESS_SEQ, STREET1, STREET2, 
+        //CITY, STATE, POSTAL_CODE, COUNTRY, SOURCE_ADDRESS, VIEW_TYPE, ADDRESS_TYPE
+        //from PCD_WS_ADDRESS_V;
+        List<String[]> addressResults = HibernateSession.bySqlStatic().listSelect(String[].class, 
+            "select char_penn_id, address_seq, street1, street2, "
+            + "city, state, postal_code, country, source_address, view_type, address_type "
+            + "from pcd_ws_address_v where char_penn_id = ?", PwsHibUtils.listObject(id));
+
+        //just take the first row
+        if (PersonWsServerUtils.length(addressResults) > 0) {
+          String[] addressResultRow = addressResults.get(0);
+
+          convertSqlAddressRowToUser(pwsNode, addressResultRow);
+
+        }
+
+      }
+
       pwsResponseBean.setResultCode("successFound");
       pwsResponseBean.setSuccess(true);
       
@@ -176,6 +198,94 @@ public class PwsRestLogic {
   }
 
   /**
+   * 
+   * @return if format2
+   */
+  public static boolean format2() {
+    String userLoggedIn = PersonWsRestServlet.retrievePrincipalLoggedIn();
+    String format2forLogins = PersonWebServiceServerConfig.retrieveConfig().propertyValueString("personWsServer.format2forLogins");
+    
+    Set<String> format2forLoginsSet = PersonWsServerUtils.nonNull(PersonWsServerUtils.splitTrimToSet(format2forLogins, ","));
+    
+    return format2forLoginsSet.contains(userLoggedIn);
+  }
+
+    
+    
+  /**
+   * @param pwsNode
+   * @param resultRow
+   */
+  private static void convertSqlAddressRowToUser(PwsNode pwsNode, String[] resultRow) {
+
+    //  char_penn_id, address_seq, street1, street2, "
+    //      + "city, state, postal_code, country, source_address, view_type, address_type "
+    //      + "from pcd_ws_address_v where char_penn_id = ?", PwsHibUtils.listObject(id));
+
+    //we have one result
+    int col = 0;
+    String pennId = resultRow[col++];
+    @SuppressWarnings("unused")
+    String addressSeq = resultRow[col++];
+    String street1 = resultRow[col++];
+    String street2 = resultRow[col++];
+    String city = resultRow[col++];
+    String state = resultRow[col++];
+    String postalCode = resultRow[col++];
+    String country = resultRow[col++];
+    @SuppressWarnings("unused")
+    String sourceAddress = resultRow[col++];
+    @SuppressWarnings("unused")
+    String viewType = resultRow[col++];
+    @SuppressWarnings("unused")
+    String addressType = resultRow[col++];
+
+    if (!StringUtils.equals(pwsNode.getFields().get("id").getString(), pennId)) {
+      throw new RuntimeException("Why do pennids not match? " + pennId 
+          + ", " + pwsNode.getFields().get("id").getString());
+    }
+    
+//    "addresses": [
+//                  {
+//                    "type": "work",
+//                    "streetAddress": "100 Universal City Plaza",
+//                    "locality": "Hollywood",
+//                    "region": "CA",
+//                    "postalCode": "91608",
+//                    "country": "USA",
+//                    "formatted": "100 Universal City Plaza\nHollywood, CA 91608 USA",
+
+    PwsNode addressNode = new PwsNode(PwsNodeType.object);
+    PwsNode addressArrayNode = new PwsNode(PwsNodeType.object);
+    addressArrayNode.setArrayType(true);
+    addressArrayNode.addArrayItem(addressNode);
+    
+    pwsNode.assignField("addresses", addressArrayNode);
+
+    addressNode.assignField("type", new PwsNode("other"));
+    String streetAddress = street1;
+    if (!StringUtils.isBlank(street2)) {
+      streetAddress += "\n" + street2;
+    }
+    addressNode.assignField("streetAddress", new PwsNode(streetAddress));
+    addressNode.assignField("locality", new PwsNode(city));
+    addressNode.assignField("region", new PwsNode(state));
+    addressNode.assignField("postalCode", new PwsNode(postalCode));
+    addressNode.assignField("country", new PwsNode(country));
+
+    StringBuilder formatted = new StringBuilder(street1);
+    PersonWsServerUtils.appendIfNotBlank(formatted, "\n", street2);
+    formatted.append("\n").append(city).append(", ").append(state).append(" ").append(postalCode);
+    PersonWsServerUtils.appendIfNotBlank(formatted, " ", country);
+    
+    addressNode.assignField("formatted", new PwsNode(formatted.toString()));
+    
+    
+  }
+
+    
+    
+  /**
    * @param pwsNode
    * @param resultRow
    * @return lastUpdated
@@ -193,9 +303,14 @@ public class PwsRestLogic {
     String birthDate = resultRow[col++];
     String gender = resultRow[col++];
     String lastUpdated = resultRow[col++];
+    String affiliation = resultRow[col++];
+    
+    boolean format2 = format2();
     
     pwsNode.assignField("id", new PwsNode(pennId));
     pwsNode.assignField("userName", new PwsNode(netId));
+
+    
     
     if (!PersonWsServerUtils.isBlank(firstName)
         || !PersonWsServerUtils.isBlank(middleName)
@@ -208,7 +323,10 @@ public class PwsRestLogic {
       nameNode.assignField("familyName", new PwsNode(lastName));
       nameNode.assignField("formatted", new PwsNode(name));
     }
-    pwsNode.assignField("active", new PwsNode(true));
+    
+    if (!format2) {
+      pwsNode.assignField("active", new PwsNode(true));
+    }
     
     if (!PersonWsServerUtils.isBlank(emailAddress)) {
       PwsNode emailsNode = new PwsNode(PwsNodeType.object);
@@ -223,28 +341,36 @@ public class PwsRestLogic {
 
     }
 
-    
-    PwsNode ciferUserNode = new PwsNode(PwsNodeType.object);
-    pwsNode.assignField("urn:scim:schemas:extension:cifer:2.0:User", ciferUserNode);
-    
-    if (!PersonWsServerUtils.isBlank(birthDate)) {
-      if (birthDate.contains(" ")) {
-        birthDate = PersonWsServerUtils.prefixOrSuffix(birthDate, " ", true);
+    if ((!format2 && (!StringUtils.isBlank(birthDate) || !StringUtils.isBlank(gender)))
+        || format2 && !StringUtils.isBlank(affiliation)) {
+      PwsNode ciferUserNode = new PwsNode(PwsNodeType.object);
+      pwsNode.assignField("urn:scim:schemas:extension:cifer:2.0:User", ciferUserNode);
+
+      if (!format2) {
+        if (!PersonWsServerUtils.isBlank(birthDate)) {
+          if (birthDate.contains(" ")) {
+            birthDate = PersonWsServerUtils.prefixOrSuffix(birthDate, " ", true);
+          }
+          ciferUserNode.assignField("dateOfBirth", new PwsNode(birthDate));
+        }
+        
+        if (!PersonWsServerUtils.isBlank(gender)) {
+          
+          if (PersonWsServerUtils.equals("M", gender)) {
+            ciferUserNode.assignField("gender", new PwsNode("male"));
+          }
+          if (PersonWsServerUtils.equals("F", gender)) {
+            ciferUserNode.assignField("gender", new PwsNode("female"));
+          }
+          
+        }
       }
-      ciferUserNode.assignField("dateOfBirth", new PwsNode(birthDate));
-    }
-    
-    if (!PersonWsServerUtils.isBlank(gender)) {
       
-      if (PersonWsServerUtils.equals("M", gender)) {
-        ciferUserNode.assignField("gender", new PwsNode("male"));
+      if (format2) {
+        ciferUserNode.assignField("affiliation", new PwsNode(affiliation));
       }
-      if (PersonWsServerUtils.equals("F", gender)) {
-        ciferUserNode.assignField("gender", new PwsNode("female"));
-      }
-      
     }
-    
+        
     //  {
     //    "id":"12345678",
     //    "userName":"jsmith",
@@ -383,14 +509,15 @@ public class PwsRestLogic {
 
       String selectClause = "select penn_id, kerberos_principal, admin_view_pref_first_name, "
                 + " admin_view_pref_middle_name, "
-                + " admin_view_pref_last_name, admin_view_pref_name, admin_view_pref_email_address, birth_date, gender, last_updated ";
+                + " admin_view_pref_last_name, admin_view_pref_name, admin_view_pref_email_address, birth_date, gender, last_updated, directory_prim_cent_affil_code ";
       StringBuilder sqlWithoutSelect = new StringBuilder(" from computed_person where "); 
       
       //see if we are filtering
-      if (!PersonWsServerUtils.isBlank(pwsUsersSearchRequest.getFilter())) {
+      String filter = pwsUsersSearchRequest.getFilter();
+      if (!PersonWsServerUtils.isBlank(filter)) {
         
         Pattern filterPattern = Pattern.compile("^urn:scim:schemas:extension:cifer:2.0:User:searchDescription co \"(.*)\"$");
-        Matcher matcher = filterPattern.matcher(pwsUsersSearchRequest.getFilter());
+        Matcher matcher = filterPattern.matcher(filter);
         
         if (matcher.matches()) {
          
@@ -421,7 +548,7 @@ public class PwsRestLogic {
         } else {
           
           filterPattern = Pattern.compile("^userName eq \"(.*)\"$");
-          matcher = filterPattern.matcher(pwsUsersSearchRequest.getFilter());
+          matcher = filterPattern.matcher(filter);
           
           if (matcher.matches()) {
            
@@ -475,11 +602,13 @@ public class PwsRestLogic {
         //  "startIndex":1,
         
         pwsNode.assignField("startIndex", new PwsNode(startIndex));
-        pwsNode.assignField("itemsPerPage", new PwsNode(pageSize));
+        pwsNode.assignField("itemsPerPage", new PwsNode(pageSize + startIndex - 1));
+        
+        String sql = "select * from (select the_row.*, rownum the_row_num from (" + selectClause + sqlWithoutSelect.toString() 
+          + orderByClause + " ) the_row) where the_row_num between ? and ?";
         
         results = HibernateSession.bySqlStatic().listSelect(String[].class, 
-            "select * from (select the_row.*, rownum the_row_num from (" + selectClause + sqlWithoutSelect.toString() 
-            + orderByClause + " ) the_row) where the_row_num between ? and ?", params);
+            sql, params);
       }
       pwsNode.assignField("totalResults", new PwsNode(PersonWsServerUtils.length(results)));
 
@@ -520,12 +649,46 @@ public class PwsRestLogic {
         PwsNode resourcesNode = new PwsNode(PwsNodeType.object);
         pwsNode.assignField("Resources", resourcesNode);
         resourcesNode.setArrayType(true);
+        List<String> pennIds = new ArrayList<String>();
+        Map<String, PwsNode> pennIdToNodeMap = new LinkedHashMap<String, PwsNode>();
         for (String[] resultRow : PersonWsServerUtils.nonNull(results)) {
           PwsNode rowPwsNode = new PwsNode(PwsNodeType.object);
           convertSqlRowToUser(rowPwsNode, resultRow);
           resourcesNode.addArrayItem(rowPwsNode);
+          pennIds.add(resultRow[0]);
+          pennIdToNodeMap.put(resultRow[0], rowPwsNode);
         }
-        
+
+        //now lets lookup addresses
+        if (format2()) {
+          int batchSize = 200;
+
+          //get these in batches
+          int batchNumberOfBatches = PersonWsServerUtils.batchNumberOfBatches(pennIds, batchSize);
+          for (int batchIndex = 0; batchIndex < batchNumberOfBatches; batchIndex++) {
+            List<String> batch = PersonWsServerUtils.batchList(pennIds, batchSize, batchIndex);
+
+            //do we do address?
+            //select CHAR_PENN_ID, ADDRESS_SEQ, STREET1, STREET2, 
+            //CITY, STATE, POSTAL_CODE, COUNTRY, SOURCE_ADDRESS, VIEW_TYPE, ADDRESS_TYPE
+            //from PCD_WS_ADDRESS_V;
+            List<String[]> addressResults = HibernateSession.bySqlStatic().listSelect(String[].class, 
+                "select char_penn_id, address_seq, street1, street2, "
+                + "city, state, postal_code, country, source_address, view_type, address_type "
+                + "from pcd_ws_address_v where char_penn_id in ("
+                + PwsHibUtils.convertToInClauseForSqlStatic(batch)
+                + ")", (List<Object>)(Object)batch);
+            
+            for (String[] addressResult : addressResults) {
+              String pennId = addressResult[0];
+              PwsNode personNode = pennIdToNodeMap.get(pennId);
+              //it wouldnt be there if we have processed this pennid already, and they have multiple addresses
+              if (personNode != null) {
+                convertSqlAddressRowToUser(personNode, addressResult);
+              }
+            }
+          }
+        }
       }
       
       pwsResponseBean.setResultCode("success");

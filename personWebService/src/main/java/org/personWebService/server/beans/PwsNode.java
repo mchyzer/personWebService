@@ -1125,6 +1125,24 @@ public class PwsNode {
    * @param pwsNode
    */
   public void assignField(String fieldName, PwsNode pwsNode) {
+    this.assignField(fieldName, pwsNode, false);
+  }
+
+  /**
+   * assign a field.  Note if null will not remove
+   * @param fieldName
+   * @param pwsNode
+   * @param allowNull
+   */
+  public void assignField(String fieldName, PwsNode pwsNode, boolean allowNull) {
+    
+    if (!allowNull && (pwsNode == null)) {
+      return;
+    }
+
+    if (!allowNull && pwsNode.pwsNodeType != null && pwsNode.pwsNodeType != PwsNodeType.object && pwsNode.getValue() == null ) {
+      return;
+    }
     
     if (this.pwsNodeType != PwsNodeType.object) {
       throw new RuntimeException("expecting node type of object: " + this.pwsNodeType + ", " + this);

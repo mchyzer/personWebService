@@ -69,10 +69,10 @@ public class PersonWsClientConfig {
     //array so we can reference from thread
     final PersonWsClientConfig[] personWsClientConfig = new PersonWsClientConfig[]{clientConfigCache.get(loginid)};
 
-    {
-      Boolean doesntExist = clientConfigCacheNotExist.get(loginid)
-      if ( != null) 
-    }
+//    {
+//      Boolean doesntExist = clientConfigCacheNotExist.get(loginid)
+//      //if ( != null) 
+//    }
     
     //if didnt find the config in the primary cache
     if (personWsClientConfig[0] == null) {
