@@ -84,17 +84,22 @@ public class PwsRestLogic {
       String query = null;
       
       if (format1()) {
-        query = "";
+        query = "select penn_id, kerberos_principal, admin_view_pref_first_name, admin_view_pref_middle_name, "
+            + "admin_view_pref_last_name, admin_view_pref_name, admin_view_pref_email_address, birth_date, "
+            + "gender, last_updated, directory_prim_cent_affil_code, school_or_center, org_or_div  "
+            + "from PCD_WS_FORMAT1_V where penn_id = ?";
       } else if (format2()) {
-        
+        query = "select penn_id, kerberos_principal, admin_view_pref_first_name, admin_view_pref_middle_name, "
+            + "admin_view_pref_last_name, admin_view_pref_name, admin_view_pref_email_address, birth_date, gender, "
+            + "last_updated, directory_prim_cent_affil_code, school_or_center, org_or_div  "
+            + "from PCD_WS_FORMAT2_V where penn_id = ?";
+      } else {
+        throw new RuntimeException("Not expecting user: " + PersonWsRestServlet.retrievePrincipalLoggedIn());
       }
       
       //do a query to get the data
       List<String[]> results = HibernateSession.bySqlStatic().listSelect(String[].class, 
-          "select penn_id, kerberos_principal, admin_view_pref_first_name, admin_view_pref_middle_name, "
-          + "admin_view_pref_last_name, admin_view_pref_name, admin_view_pref_email_address, birth_date, gender, last_updated, directory_prim_cent_affil_code  "
-          + "from computed_person where penn_id = ? and active_code = 'A' "
-          + "and (is_active_faculty = 'Y' or is_active_staff = 'Y' or is_active_student = 'Y' or directory_prim_cent_affil_id is not null)", PwsHibUtils.listObject(id));
+          query, PwsHibUtils.listObject(id));
 
       //  "meta": {
       //    "resourceType": "User",
@@ -325,13 +330,14 @@ public class PwsRestLogic {
     String gender = resultRow[col++];
     String lastUpdated = resultRow[col++];
     String affiliation = resultRow[col++];
+    String center = resultRow[col++];
+    String org = resultRow[col++];
     
+    boolean format1 = format1();
     boolean format2 = format2();
     
     pwsNode.assignField("id", new PwsNode(pennId));
     pwsNode.assignField("userName", new PwsNode(netId));
-
-    
     
     if (!PersonWsServerUtils.isBlank(firstName)
         || !PersonWsServerUtils.isBlank(middleName)
@@ -367,7 +373,7 @@ public class PwsRestLogic {
       PwsNode ciferUserNode = new PwsNode(PwsNodeType.object);
       pwsNode.assignField("urn:scim:schemas:extension:cifer:2.0:User", ciferUserNode);
 
-      if (!format2) {
+      if (format1) {
         if (!PersonWsServerUtils.isBlank(birthDate)) {
           if (birthDate.contains(" ")) {
             birthDate = PersonWsServerUtils.prefixOrSuffix(birthDate, " ", true);
@@ -385,7 +391,15 @@ public class PwsRestLogic {
           }
           
         }
+      } else if (format2) {
+        if (!PersonWsServerUtils.isBlank(org)) {
+          ciferUserNode.assignField("org", new PwsNode(org));
+        }
+        if (!PersonWsServerUtils.isBlank(center)) {
+          ciferUserNode.assignField("center", new PwsNode(center));
+        }
       }
+      
       
       if (format2) {
         ciferUserNode.assignField("affiliation", new PwsNode(affiliation));
@@ -530,7 +544,8 @@ public class PwsRestLogic {
 
       String selectClause = "select penn_id, kerberos_principal, admin_view_pref_first_name, "
                 + " admin_view_pref_middle_name, "
-                + " admin_view_pref_last_name, admin_view_pref_name, admin_view_pref_email_address, birth_date, gender, last_updated, directory_prim_cent_affil_code ";
+                + " admin_view_pref_last_name, admin_view_pref_name, admin_view_pref_email_address, "
+                + "birth_date, gender, last_updated, directory_prim_cent_affil_code, school_or_center, org_or_div ";
       StringBuilder sqlWithoutSelect = new StringBuilder(" from computed_person where "); 
       
       //see if we are filtering
