@@ -81,6 +81,14 @@ public class PwsRestLogic {
       
       pwsResponseBean.setPwsNode(pwsNode);
 
+      String query = null;
+      
+      if (format1()) {
+        query = "";
+      } else if (format2()) {
+        
+      }
+      
       //do a query to get the data
       List<String[]> results = HibernateSession.bySqlStatic().listSelect(String[].class, 
           "select penn_id, kerberos_principal, admin_view_pref_first_name, admin_view_pref_middle_name, "
@@ -208,6 +216,19 @@ public class PwsRestLogic {
     Set<String> format2forLoginsSet = PersonWsServerUtils.nonNull(PersonWsServerUtils.splitTrimToSet(format2forLogins, ","));
     
     return format2forLoginsSet.contains(userLoggedIn);
+  }
+
+  /**
+   * 
+   * @return if format1
+   */
+  public static boolean format1() {
+    String userLoggedIn = PersonWsRestServlet.retrievePrincipalLoggedIn();
+    String format1forLogins = PersonWebServiceServerConfig.retrieveConfig().propertyValueString("personWsServer.format1forLogins");
+    
+    Set<String> format1forLoginsSet = PersonWsServerUtils.nonNull(PersonWsServerUtils.splitTrimToSet(format1forLogins, ","));
+    
+    return format1forLoginsSet.contains(userLoggedIn);
   }
 
     

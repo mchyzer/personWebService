@@ -31,6 +31,7 @@ import org.personWebService.server.daemon.DaemonController;
 import org.personWebService.server.util.PersonWsServerUtils;
 import org.personWebService.server.ws.corebeans.PwsResponseBean;
 import org.personWebService.server.ws.corebeans.PwsResultProblem;
+import org.personWebService.server.ws.rest.PwsRestAuthenticationRequired;
 import org.personWebService.server.ws.rest.PwsRestContentType;
 import org.personWebService.server.ws.rest.PwsRestHttpMethod;
 import org.personWebService.server.ws.rest.PwsRestInvalidRequest;
@@ -86,7 +87,7 @@ public class PersonWsRestServlet extends HttpServlet {
     // cant be blank!
     if (StringUtils.isBlank(userIdLoggedIn)) {
       //server is having trouble if got this far, but also the user's fault
-      throw new PwsRestInvalidRequest("No user is logged in");
+      throw new PwsRestAuthenticationRequired("No user is logged in");
     }
 
     
@@ -366,6 +367,13 @@ public class PersonWsRestServlet extends HttpServlet {
     } catch (PwsRestInvalidRequest arir) {
 
       pwsResponseBean = new PwsResultProblem();
+
+      if (arir instanceof PwsRestAuthenticationRequired) {
+        HttpServletResponse httpServletResponse = PersonWsFilterJ2ee.retrieveHttpServletResponse();
+        httpServletResponse.setHeader("WWW-Authenticate", "BASIC realm=\"PennKey\"");
+        pwsResponseBean.setHttpResponseCode(401);
+      }
+      
       String error = arir.getMessage() + ", " + requestDebugInfo(request);
 
       //this is a user error, but an error nonetheless
