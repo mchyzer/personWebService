@@ -1,4 +1,4 @@
-/* Formatted on 2/12/2016 1:05:07 PM (QP5 v5.252.13127.32847) */
+/* Formatted on 2/13/2016 10:53:07 AM (QP5 v5.252.13127.32847) */
 CREATE OR REPLACE FORCE VIEW PCD_WS_FORMAT1_V
 (
    PENN_ID,
@@ -11,7 +11,10 @@ CREATE OR REPLACE FORCE VIEW PCD_WS_FORMAT1_V
    BIRTH_DATE,
    GENDER,
    LAST_UPDATED,
-   DIRECTORY_PRIM_CENT_AFFIL_CODE
+   DIRECTORY_PRIM_CENT_AFFIL_CODE,
+   SCHOOL_OR_CENTER,
+   ORG_OR_DIV,
+   SEARCH_DESCRIPTION
 )
    BEQUEATH DEFINER
 AS
@@ -25,7 +28,10 @@ AS
           birth_date,
           gender,
           last_updated,
-          directory_prim_cent_affil_code
+          directory_prim_cent_affil_code,
+          NULL AS scohol_or_center,
+          NULL AS org_or_div,
+          search_description
      FROM computed_person
     WHERE     active_code = 'A'
           AND (   is_active_faculty = 'Y'

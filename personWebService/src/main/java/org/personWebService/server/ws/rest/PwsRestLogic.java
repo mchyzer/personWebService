@@ -83,18 +83,17 @@ public class PwsRestLogic {
 
       String query = null;
       
+      query = "select penn_id, kerberos_principal, admin_view_pref_first_name, admin_view_pref_middle_name, "
+          + "admin_view_pref_last_name, admin_view_pref_name, admin_view_pref_email_address, birth_date, "
+          + "gender, last_updated, directory_prim_cent_affil_code, school_or_center, org_or_div  "
+          + "from PCD_WS_FORMATX_V where penn_id = ?";
+      
       if (format1()) {
-        query = "select penn_id, kerberos_principal, admin_view_pref_first_name, admin_view_pref_middle_name, "
-            + "admin_view_pref_last_name, admin_view_pref_name, admin_view_pref_email_address, birth_date, "
-            + "gender, last_updated, directory_prim_cent_affil_code, school_or_center, org_or_div  "
-            + "from PCD_WS_FORMAT1_V where penn_id = ?";
+        query = PersonWsServerUtils.replace(query, "PCD_WS_FORMATX_V", "PCD_WS_FORMAT1_V");
       } else if (format2()) {
-        query = "select penn_id, kerberos_principal, admin_view_pref_first_name, admin_view_pref_middle_name, "
-            + "admin_view_pref_last_name, admin_view_pref_name, admin_view_pref_email_address, birth_date, gender, "
-            + "last_updated, directory_prim_cent_affil_code, school_or_center, org_or_div  "
-            + "from PCD_WS_FORMAT2_V where penn_id = ?";
+        query = PersonWsServerUtils.replace(query, "PCD_WS_FORMATX_V", "PCD_WS_FORMAT2_V");
       } else {
-        throw new RuntimeException("Not expecting user: " + PersonWsRestServlet.retrievePrincipalLoggedIn());
+        throw new RuntimeException("Cant match user to format: " + PersonWsRestServlet.retrievePrincipalLoggedIn());
       }
       
       //do a query to get the data
@@ -546,7 +545,18 @@ public class PwsRestLogic {
                 + " admin_view_pref_middle_name, "
                 + " admin_view_pref_last_name, admin_view_pref_name, admin_view_pref_email_address, "
                 + "birth_date, gender, last_updated, directory_prim_cent_affil_code, school_or_center, org_or_div ";
-      StringBuilder sqlWithoutSelect = new StringBuilder(" from computed_person where "); 
+      String viewName = null;
+      
+      if (format1()) {
+        viewName = "PCD_WS_FORMAT1_V";
+      } else if (format2()) {
+        viewName = "PCD_WS_FORMAT2_V";
+      } else {
+        throw new RuntimeException("Cant match user to format: " + PersonWsRestServlet.retrievePrincipalLoggedIn());
+      }
+
+      StringBuilder sqlWithoutSelect = new StringBuilder(" from " + viewName + " where "); 
+      boolean sqlWithoutSelectNeedsAnd = false;
       
       //see if we are filtering
       String filter = pwsUsersSearchRequest.getFilter();
@@ -579,7 +589,8 @@ public class PwsRestLogic {
               
             index++;
           }
-          sqlWithoutSelect.append(" ) and ");
+          sqlWithoutSelect.append(" ) ");
+          sqlWithoutSelectNeedsAnd = true;
         
         } else {
           
@@ -593,7 +604,11 @@ public class PwsRestLogic {
             //       kerberos_principal = 'mchyzer' and
             
     
-            sqlWithoutSelect.append(" kerberos_principal = ? and ");
+            if (sqlWithoutSelectNeedsAnd) {
+              sqlWithoutSelect.append(" and ");
+            }
+            sqlWithoutSelect.append(" kerberos_principal = ?");
+            sqlWithoutSelectNeedsAnd = true;
 
             params.add(pennKey);
 
@@ -604,10 +619,6 @@ public class PwsRestLogic {
       }
       
       String orderByClause = " order by admin_view_pref_name";
-      
-      sqlWithoutSelect.append(" active_code = 'A' "
-          + " and (is_active_faculty = 'Y' or is_active_staff = 'Y' or is_active_student = 'Y' "
-          + " or directory_prim_cent_affil_id is not null)");
       
       int startIndex = pwsUsersSearchRequest.getStartIndex();
 

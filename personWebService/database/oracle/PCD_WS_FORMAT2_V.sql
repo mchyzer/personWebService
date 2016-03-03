@@ -1,4 +1,4 @@
-/* Formatted on 2/12/2016 3:20:14 PM (QP5 v5.252.13127.32847) */
+/* Formatted on 2/13/2016 10:54:21 AM (QP5 v5.252.13127.32847) */
 CREATE OR REPLACE FORCE VIEW PCD_WS_FORMAT2_V
 (
    PENN_ID,
@@ -12,8 +12,12 @@ CREATE OR REPLACE FORCE VIEW PCD_WS_FORMAT2_V
    GENDER,
    LAST_UPDATED,
    DIRECTORY_PRIM_CENT_AFFIL_CODE,
-   CHAR_PENN_ID
+   CHAR_PENN_ID,
+   SCHOOL_OR_CENTER,
+   ORG_OR_DIV,
+   SEARCH_DESCRIPTION
 )
+   BEQUEATH DEFINER
 AS
    SELECT penn_id,
           kerberos_principal,
@@ -22,11 +26,14 @@ AS
           admin_view_pref_last_name,
           admin_view_pref_name,
           admin_view_pref_email_address,
-          birth_date,
-          gender,
+          NULL,
+          NULL,
           last_updated,
           directory_prim_cent_affil_code,
-          char_penn_id
+          char_penn_id,
+          school_or_center_or_override,
+          org_or_div_or_override,
+          search_description
      FROM computed_person
     WHERE     active_code = 'A'
           AND (   is_active_faculty = 'Y'

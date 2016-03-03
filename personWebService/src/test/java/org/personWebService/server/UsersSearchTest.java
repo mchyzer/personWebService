@@ -47,7 +47,8 @@ public class UsersSearchTest extends TestCase {
 
     String user = PersonWebServiceServerConfig.retrieveConfig().propertyValueStringRequired("personWsClient.webService.login");
     String pass = PersonWebServiceServerConfig.retrieveConfig().propertyValueStringRequired("personWsClient.webService.password");
-
+    String appUrlBase = PersonWebServiceServerConfig.retrieveConfig().propertyValueStringRequired("personWsServer.appUrlBase");
+    
     
     Credentials defaultcreds = new UsernamePasswordCredentials(user, pass);
 
@@ -57,7 +58,8 @@ public class UsersSearchTest extends TestCase {
     //xCiferSplitTrim=true&filter=xCiferDescription co "Joh Smi" 
     //HttpMethodBase httpMethodBase = new GetMethod("http://localhost:8089/personWebService/personWs/v1/Users?xCiferSplitTrim=true&filter=urn:scim:schemas:extension:cifer:2.0:User:searchDescription%20co%20%22schm%22&contentType=json&indent=true");
     
-    HttpMethodBase httpMethodBase = new GetMethod("https://personwebservice-test.apps.upenn.edu/personWebService/personWs/v1/Users?xCiferSplitTrim=true&filter=urn:scim:schemas:extension:cifer:2.0:User:searchDescription%20co%20%22schm%22&contentType=json&indent=true");
+    //HttpMethodBase httpMethodBase = new GetMethod("https://personwebservice-test.apps.upenn.edu/personWebService/personWs/v1/Users?xCiferSplitTrim=true&filter=urn:scim:schemas:extension:cifer:2.0:User:searchDescription%20co%20%22schm%22&contentType=json&indent=true");
+    HttpMethodBase httpMethodBase = new GetMethod(appUrlBase + "personWs/v1/Users?xCiferSplitTrim=true&filter=urn:scim:schemas:extension:cifer:2.0:User:searchDescription%20co%20%22schm%22&contentType=json&indent=true");
     
     //HttpMethodBase httpMethodBase = new GetMethod("https://personwebservice-test.apps.upenn.edu/personWebService/personWs/v1/Users?xCiferSplitTrim=true&filter=xCiferDescription%20co%20%22Chris%20yzer%22&contentType=json&indent=true");
 

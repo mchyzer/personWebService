@@ -69,7 +69,7 @@ public class UserByIdTest extends TestCase {
     //set auth scope to null and negative so it applies to all hosts and ports
     httpClient.getState().setCredentials(new AuthScope(null, -1), defaultcreds);
     
-    HttpMethodBase httpMethodBase = new GetMethod(url + "personWs/v1/Users/10021368?contentType=json&indent=true");
+    HttpMethodBase httpMethodBase = new GetMethod(url + "personWs/v1/Users/88191359?contentType=json&indent=true");
     //HttpMethodBase httpMethodBase = new GetMethod("https://fasttest-small-a-01.apps.upenn.edu/personWebService/personWs/v1/Users/10021368?contentType=json&indent=true");
     
     httpMethodBase.setRequestHeader("Connection", "close");
