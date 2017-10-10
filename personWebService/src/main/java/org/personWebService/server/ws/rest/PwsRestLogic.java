@@ -287,7 +287,7 @@ public class PwsRestLogic {
     
     pwsNode.assignField("addresses", addressArrayNode);
 
-    addressNode.assignField("type", new PwsNode("other"));
+    addressNode.assignField("type", new PwsNode(addressType));
     String streetAddress = street1;
     if (!StringUtils.isBlank(street2)) {
       streetAddress += "\n" + street2;

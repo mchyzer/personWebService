@@ -29,6 +29,23 @@ import org.personWebService.server.util.PersonWsServerUtils;
  */
 public class PwsNode {
 
+  /**
+   * see if has no value
+   * @return true if has no value (e.g. null)
+   */
+  public boolean isHasNoValue() {
+    
+    if (this.arrayType) {
+      return this.array == null || this.array.size() == 0;
+    }
+    
+    if (this.pwsNodeType == PwsNodeType.object) {
+      return this.object == null || this.object.size() == 0;
+    }
+    
+    return this.getValue() == null;
+  }
+
   /** logger */
   private static final Log LOG = PersonWsServerUtils.getLog(PwsNode.class);
 
@@ -1140,7 +1157,7 @@ public class PwsNode {
       return;
     }
 
-    if (!allowNull && pwsNode.pwsNodeType != null && pwsNode.pwsNodeType != PwsNodeType.object && pwsNode.getValue() == null ) {
+    if (!allowNull && pwsNode.pwsNodeType != null && pwsNode.pwsNodeType != PwsNodeType.object && pwsNode.isHasNoValue() ) {
       return;
     }
     
