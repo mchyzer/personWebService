@@ -1,4 +1,4 @@
-/* Formatted on 2/13/2016 10:54:21 AM (QP5 v5.252.13127.32847) */
+/* Formatted on 5/9/2019 9:41:11 AM (QP5 v5.252.13127.32847) */
 CREATE OR REPLACE FORCE VIEW PCD_WS_FORMAT2_V
 (
    PENN_ID,
@@ -21,10 +21,14 @@ CREATE OR REPLACE FORCE VIEW PCD_WS_FORMAT2_V
 AS
    SELECT penn_id,
           kerberos_principal,
-          admin_view_pref_first_name,
-          admin_view_pref_middle_name,
-          admin_view_pref_last_name,
-          admin_view_pref_name,
+          NVL (admin_view_pref_first_name, CP.STUDENT_CENTRIC_FIRST_NAME),
+          NVL (admin_view_pref_middle_name, CP.STUDENT_CENTRIC_MIDDLE_NAME),
+          NVL (admin_view_pref_last_name, CP.STUDENT_CENTRIC_LAST_NAME),
+          NVL (
+             admin_view_pref_name,
+                CP.STUDENT_CENTRIC_FIRST_NAME
+             || ' '
+             || CP.STUDENT_CENTRIC_LAST_NAME),
           admin_view_pref_email_address,
           NULL,
           NULL,
@@ -34,7 +38,7 @@ AS
           school_or_center_or_override,
           org_or_div_or_override,
           search_description
-     FROM computed_person
+     FROM computed_person cp
     WHERE     active_code = 'A'
           AND (   is_active_faculty = 'Y'
                OR is_active_staff = 'Y'
@@ -42,3 +46,7 @@ AS
                OR directory_prim_cent_affil_id IS NOT NULL);
 
 COMMENT ON TABLE PCD_WS_FORMAT2_V IS 'format2 view';
+
+
+
+GRANT SELECT ON PCD_WS_FORMAT2_V TO COM_DIR_PC_PCDADMIN_ROLE;
